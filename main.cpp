@@ -82,10 +82,15 @@ class clsUser{ //Observer
     string getName(){
       return _name;
     }
+
+    void setId(int id){
+      _id = id;
+    }
   
   private:
     int _id;
     string _name;
+    bool _cpu = false;
 };
 
 //GAMESTATE CLASS
@@ -121,14 +126,17 @@ class clsGamestate {
 
       for(int i = 0; i < _playerCount; i++){
         string name;
-        Log("Enter player", to_string(i+1), "'s name:");
+        Log("Enter player ", to_string(i+1), "'s name:");
         cin >> name;
         clsUser newUser(name);
         registerUser(newUser);
       }
+      Log();
     }
 
     void printAllUsers(vector <clsUser> users){
+      Log("Player List: ");
+
       for(int i = 0; i < users.size(); i++){
         Log(to_string(i+1), "." , users[i].getName());
       }
@@ -143,6 +151,10 @@ class clsGamestate {
       return _users;
     }
   
+    void deleteAllUsers(){
+      _users.clear();
+    }
+
   private:
     int _playerCount;
     vector < clsUser > _users;
