@@ -29,15 +29,15 @@ Singleton* Singleton::_inst = NULL;
 
 
 // int main() {
-// 	Singleton* instance1; //set the variable instance1 as a pointer (*)
-// 	Singleton* instance2;
+	// Singleton* instance1; //set the variable instance1 as a pointer (*)
+	// Singleton* instance2;
 	
-// 	instance1 = Singleton::getInstance();
-// 	instance2 = Singleton::getInstance();
+	// instance1 = Singleton::getInstance();
+	// instance2 = Singleton::getInstance();
 	
-// 	instance2->setValue(10); //use the arrow operator (->) to access members using pointers
-// 	cout << "\nSingleton1 value: " << instance1->getValue() << "\n";
+	// instance2->setValue(10); //use the arrow operator (->) to access members using pointers
+	// cout << instance1->getValue() << "\n";
 
-// 	instance1->setValue(20); //use the arrow operator (->) to access members using pointers
-// 	cout << "\nSingleton2 value: " << instance2->getValue() << "\n";
+	// instance1->setValue(20); //use the arrow operator (->) to access members using pointers
+	// cout << instance2->getValue() << "\n";
 // }

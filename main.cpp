@@ -91,11 +91,6 @@ class clsUser{ //Observer
 //GAMESTATE CLASS
 class clsGamestate {
   public:
-
-    int getPlayerCount(){
-      return _playerCount;
-    }
-
     //used to allow clients to access the instance of Gamestate;
     static clsGamestate* getInstance() {
 			if (_inst == NULL) {
@@ -103,27 +98,44 @@ class clsGamestate {
 			}
 			return(_inst);
 		};
+    
+    int getPlayerCount(){
+      return _playerCount;
+    }
+
+    void setPlayerCount(int count){
+      _playerCount = count;
+    }
+
+    void initPlayerCount(){
+      int playerCount;
+
+      Log("Enter the number of players: ");
+      cin >> playerCount;
+      
+      setPlayerCount(playerCount);
+    }
 
     void initPlayers(){
-      Log("Enter number of players: ");
-      cin >> _playerCount;
+      initPlayerCount();
 
       for(int i = 0; i < _playerCount; i++){
         string name;
         Log("Enter player", to_string(i+1), "'s name:");
         cin >> name;
-        registerUser(clsUser(name));
+        clsUser newUser(name);
+        registerUser(newUser);
       }
     }
 
-    static void printAllUsers(vector <clsUser> users){
+    void printAllUsers(vector <clsUser> users){
       for(int i = 0; i < users.size(); i++){
         Log(to_string(i+1), "." , users[i].getName());
       }
       Log();
     };
         
-    static void registerUser(clsUser& user){
+    void registerUser(clsUser& user){
       _users.push_back(user);
     }
 
@@ -132,9 +144,9 @@ class clsGamestate {
     }
   
   private:
-    static int _playerCount;
+    int _playerCount;
+    vector < clsUser > _users;
     static clsGamestate* _inst;
-    static vector < clsUser > _users;
 };
 
 
@@ -145,18 +157,7 @@ int main(){
   clsGamestate* state; // set variable 'Gamestate' as a pointer;
   state = clsGamestate::getInstance(); // assign the instance of clsGamestate;
 
-  clsUser newUser1("Alex");
-  clsUser newUser2("Sofia");
-  clsUser newUser3("Luis");
-  clsUser newUser4("Chris");
+  state -> initPlayers();
 
-  state -> registerUser(newUser1);//Register a new user to the gamestate;
-  state -> registerUser(newUser2);//Register a new user to the gamestate;
-  state -> registerUser(newUser3);//Register a new user to the gamestate;
-
-  Log("Get all user names from gamestate: ");
-  state -> printAllUsers(state -> getUsers());
-
-  state -> registerUser(newUser4);//Register a new user to the gamestate;
   state -> printAllUsers(state -> getUsers());
 }
