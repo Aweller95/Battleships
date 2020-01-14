@@ -5,14 +5,12 @@
 using namespace std;
 
 /* 
-
 NOTES
 
 - Gamestate contains a vector of users; The state registers new users;
 - User contains a vector of ships;
 - Board needs to know about players & ships - must subscribe to both User and Gamestate;
 -- Board needs to be able to iterate through all users & then iterate through each users ship vector;
-
 */
 
 const int NOVALUE = -1;
@@ -26,11 +24,13 @@ struct bulkhead{
 struct coordinate{
   int x;
   int y;
+  int playerId;
+
 };
 
 struct board{
-  vector <int> xAxis;
-  vector <int> yAxis;
+  vector <coordinate> xAxis;
+  vector <coordinate> yAxis;
 };
 
 //HELPERS
@@ -84,16 +84,17 @@ class clsShip{
 //USER CLASS
 class clsUser{ //Observer
   public:
-    clsUser(string name){
+    clsUser(string name, int id){
       _name = name;
+      _id = id;
     }
 
     string getName(){
       return _name;
     }
 
-    void setId(int id){
-      _id = id;
+    int getId(){
+      return _id;
     }
   
   private:
@@ -150,11 +151,11 @@ class clsGamestate {
         cin >> name;
 
         while(checkIfDuplicateUser(name)){
-          Log("There is already a user playing with that name, please enter another name:");
+          Log("There is already a user with that name, please enter another name:");
           cin >> name;
         }
 
-        clsUser newUser(name);
+        clsUser newUser(name, _users.size() + 1);
         registerUser(newUser);
       }
       Log();
@@ -170,7 +171,7 @@ class clsGamestate {
 
       if(_users.size()){
         for(int i = 0; i < _users.size(); i++){
-          Log(to_string(i+1), "." , _users[i].getName());
+          Log(to_string(_users[i].getId()), "." , _users[i].getName());
         }
       } else {
         Log("!! No users registered !!");
