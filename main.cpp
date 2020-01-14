@@ -37,6 +37,10 @@ void Log(string message1 = "", string message2 = "", string message3 = ""){
   cout << message1 << message2 << message3 << endl;
 }
 
+void ClearConsole(){
+  cout << "\033[2J\033[0;0H"; // escape sequence that clears the console;
+}
+
 //SHIP CLASS
 class clsShip{
   public:
@@ -121,6 +125,18 @@ class clsGamestate {
       setPlayerCount(playerCount);
     }
 
+    bool checkIfDuplicateUser(string newName){
+      bool result = false;
+
+      for(int i = 0; i < _users.size(); i++){
+        if(_users[i].getName() == newName){
+          result = true;
+        }
+      }
+
+      return result;
+    }
+
     void initPlayers(){
       initPlayerCount();
 
@@ -128,18 +144,29 @@ class clsGamestate {
         string name;
         Log("Enter player ", to_string(i+1), "'s name:");
         cin >> name;
+
+        while(checkIfDuplicateUser(name)){
+          Log("There is already a user playing with that name, please enter another name:");
+          cin >> name;
+        }
+
         clsUser newUser(name);
         registerUser(newUser);
       }
       Log();
     }
 
-    void printAllUsers(vector <clsUser> users){
+    void printAllUsers(){
       Log("Player List: ");
 
-      for(int i = 0; i < users.size(); i++){
-        Log(to_string(i+1), "." , users[i].getName());
+      if(_users.size()){
+        for(int i = 0; i < _users.size(); i++){
+          Log(to_string(i+1), "." , _users[i].getName());
+        }
+      } else {
+        Log("!! No users registered !!");
       }
+
       Log();
     };
         
@@ -171,5 +198,5 @@ int main(){
 
   state -> initPlayers();
 
-  state -> printAllUsers(state -> getUsers());
+  state -> printAllUsers();
 }
