@@ -13,6 +13,11 @@ NOTES
 -- Board needs to be able to iterate through all users & then iterate through each users ship vector;
 */
 
+// Declare classes here initially to enable interdependence;
+class clsShip;
+class clsUser;
+class clsGamestate;
+
 const int NOVALUE = -1;
 
 struct bulkhead{
@@ -21,26 +26,32 @@ struct bulkhead{
   bool hit = false;
 };
 
-struct coordinate{
+struct coord{
   int x;
   int y;
-  int playerId;
-
 };
 
-struct board{
-  vector <coordinate> xAxis;
-  vector <coordinate> yAxis;
-};
-
-//HELPERS
+//UTILITIES CLASS
 /* 
 I am using a naming scheme for helper functions to start with capital letters. This is to allow for easy differentiation between other function classifications.
-- Log() takes 3 optional params that will print to the console. Calling with no params prints a new line - I found that this was a cleaner way instead of using ```cout << "\n"```.
+- Log() takes 3 optional params that will print to the console. Calling with no params prints a new line - I found that this was a cleaner way instead of using `cout << "\n"`.
+- ClearConsole() prints an escape sequence using `cout` which will clear all data currently displayed on the console.
 */
+
+// class clsUtilities{ USE THIS TO BE INHERITED BY SUBCLASSES ONCE TESTED
+//   protected:
+//     void Log(string message1 = "", string message2 = "", string message3 = ""){
+//       cout << message1 << message2 << message3 << endl;
+//     }
+
+//     void ClearConsole(){
+//       cout << "\033[2J\033[0;0H"; // escape sequence that clears the console;
+//     }
+// };
+
 void Log(string message1 = "", string message2 = "", string message3 = ""){
-  cout << message1 << message2 << message3 << endl;
-}
+      cout << message1 << message2 << message3 << endl;
+    }
 
 void ClearConsole(){
   cout << "\033[2J\033[0;0H"; // escape sequence that clears the console;
@@ -84,7 +95,7 @@ class clsShip{
 //USER CLASS
 class clsUser{ //Observer
   public:
-    clsUser(string name, int id){
+    clsUser(string name, int id){//constructor
       _name = name;
       _id = id;
     }
@@ -96,16 +107,25 @@ class clsUser{ //Observer
     int getId(){
       return _id;
     }
-  
-  private:
 
+    vector < coord > getOccupied(){
+      return _occupied;
+    }
+
+    vector < coord > getAttacked(){
+      return _attacked;
+    }
+
+  private:
     int _id;
     string _name;
+    vector < coord > _occupied; // represents a players personal board;
+    vector < coord > _attacked;
     bool _cpu = false;
 };
 
-//GAMESTATE CLASS
-class clsGamestate {
+//GAMESTATE CLASS - Combined Singleton + State Machine Design Patterns
+class clsGamestate{
   public:
     //used to allow clients to access the instance of Gamestate;
     static clsGamestate* getInstance() {
@@ -114,9 +134,18 @@ class clsGamestate {
 			}
 			return(_inst);
 		};
-    
+
     int getPlayerCount(){
       return _playerCount;
+    }
+
+    void setBoardSize(int x, int y){
+      _boardSize.x = x;
+      _boardSize.y = y;
+    }
+
+    coord getBoardSize(){
+      return _boardSize;
     }
 
     void setPlayerCount(int count){
@@ -161,7 +190,20 @@ class clsGamestate {
       Log();
     }
 
-    void initNewGame(){
+    void initBoardSize(){
+      int x, y;
+
+      Log("Please enter the size of the X axis for player boards");
+      cin >> x;
+
+      Log("Please enter the size of the Y axis for player boards");
+      cin >> y;
+
+      setBoardSize(x, y);
+    }
+
+    void startNewGame(){
+      initBoardSize();
       initPlayerCount();
       initPlayers();
     }
@@ -187,7 +229,38 @@ class clsGamestate {
     vector < clsUser > getUsers(){
       return _users;
     }
-  
+
+    void viewBoard(int targetId, bool target = false){
+      if(target){
+        // should abstract this to a func;
+        vector <coord> damagedZones;
+        int userIndex;
+
+        for(int i = 0; i < _users.size(); i++){
+          if(_users[i].getId() == targetId){
+            damagedZones = _users[i].getAttacked();
+            userIndex = i;
+          }
+        }
+
+        Log("Viewing ", _users[userIndex].getName(), "'s board as target");
+        
+        for(int x = 0; x < _boardSize.x; x++){
+          for(int y = 0; y < _boardSize.y; y++){
+            //if x & y match any attacked coords - print 'X'
+
+
+            //otherwise pring '.'
+          }
+          cout << endl;
+        }
+
+      } else {
+        // Log("Viewing ", getName(), "'s board as owner");
+
+      }
+    }
+
     void deleteAllUsers(){
       _users.clear();
     }
@@ -196,19 +269,23 @@ class clsGamestate {
     int _state;
     int _playerCount;
     vector < clsUser > _users;
-    int xAxisSize;
-    int yAxisSize;
+    coord _boardSize;
     static clsGamestate* _inst;
 };
 
-//Think about inter-dependency & using friend functions;
+
 clsGamestate* clsGamestate::_inst = NULL;
 
 int main(){
   clsGamestate* state; // set variable 'Gamestate' as a pointer;
   state = clsGamestate::getInstance(); // assign the instance of clsGamestate;
 
-  state -> initNewGame();
+  state -> startNewGame();
 
   state -> printAllUsers();
+
+Log("Board size X: ", to_string(state -> getBoardSize().x));
+Log("Board size Y: ", to_string(state -> getBoardSize().y));
+
+  // state -> viewBoard(1, true);
 }
