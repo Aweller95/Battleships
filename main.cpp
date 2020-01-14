@@ -28,6 +28,11 @@ struct coordinate{
   int y;
 };
 
+struct board{
+  vector <int> xAxis;
+  vector <int> yAxis;
+};
+
 //HELPERS
 /* 
 I am using a naming scheme for helper functions to start with capital letters. This is to allow for easy differentiation between other function classifications.
@@ -92,6 +97,7 @@ class clsUser{ //Observer
     }
   
   private:
+
     int _id;
     string _name;
     bool _cpu = false;
@@ -138,8 +144,6 @@ class clsGamestate {
     }
 
     void initPlayers(){
-      initPlayerCount();
-
       for(int i = 0; i < _playerCount; i++){
         string name;
         Log("Enter player ", to_string(i+1), "'s name:");
@@ -154,6 +158,11 @@ class clsGamestate {
         registerUser(newUser);
       }
       Log();
+    }
+
+    void initNewGame(){
+      initPlayerCount();
+      initPlayers();
     }
 
     void printAllUsers(){
@@ -183,20 +192,22 @@ class clsGamestate {
     }
 
   private:
+    int _state;
     int _playerCount;
     vector < clsUser > _users;
+    int xAxisSize;
+    int yAxisSize;
     static clsGamestate* _inst;
 };
 
-
-//Think about inter-dependency & friend functions;
+//Think about inter-dependency & using friend functions;
 clsGamestate* clsGamestate::_inst = NULL;
 
 int main(){
   clsGamestate* state; // set variable 'Gamestate' as a pointer;
   state = clsGamestate::getInstance(); // assign the instance of clsGamestate;
 
-  state -> initPlayers();
+  state -> initNewGame();
 
   state -> printAllUsers();
 }
