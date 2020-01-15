@@ -111,9 +111,51 @@ class clsUser{ //Observer
     vector < coord > getOccupied(){
       return _occupied;
     }
+    
+    void addOccupied(int x, int y){
+      coord coordinate;
+      coordinate.x = x;
+      coordinate.y = y;
+      _occupied.push_back(coordinate);
+    }
 
     vector < coord > getAttacked(){
       return _attacked;
+    }
+
+    void addAttacked(int x, int y){
+      coord coordinate;
+      coordinate.x = x;
+      coordinate.y = y;
+      _attacked.push_back(coordinate);
+    }
+    
+    bool checkCoord(int x, int y, bool target = false){ // Using polymorphism - change the behaviour of thos func depending if the user is a target or is checking their own ships;
+      bool result = false;
+      vector < coord > tempCoords;
+
+      if(target){ // If user is being targeted -> return tiles that have been attacked already;
+        for(int i = 0; i < getAttacked().size(); i++){
+          if(getAttacked()[i].x == x && getAttacked()[i].y == y){
+            result = true;
+          }
+        }
+      } else { // If user is looking at their own board -> return tiles that are occupied by their own ships;
+        for(int i = 0; i < getOccupied().size(); i++){
+          if(getOccupied()[i].x == x && getOccupied()[i].y == y){
+            result = true;
+          }
+        }
+      }
+
+      return result;
+    }
+
+    //DEBUG func
+    void printAttacked(){
+      for(int i = 0; i < _attacked.size(); i++){
+        Log(to_string(_attacked[i].x), " ",to_string(_attacked[i].y));
+      }
     }
 
   private:
@@ -230,36 +272,49 @@ class clsGamestate{
       return _users;
     }
 
-    void viewBoard(int targetId, bool target = false){
-      if(target){
-        // should abstract this to a func;
-        vector <coord> damagedZones;
-        int userIndex;
-
-        for(int i = 0; i < _users.size(); i++){
-          if(_users[i].getId() == targetId){
-            damagedZones = _users[i].getAttacked();
-            userIndex = i;
-          }
+    clsUser getUserById(int id){
+      for(int i = 0; i < _users.size(); i++){
+        if(_users[i].getId() == id){
+          return _users[i];
         }
-
-        Log("Viewing ", _users[userIndex].getName(), "'s board as target");
-        
-        for(int x = 0; x < _boardSize.x; x++){
-          for(int y = 0; y < _boardSize.y; y++){
-            //if x & y match any attacked coords - print 'X'
-
-
-            //otherwise pring '.'
-          }
-          cout << endl;
-        }
-
-      } else {
-        // Log("Viewing ", getName(), "'s board as owner");
-
       }
+      cout << "USER NOT FOUND";
     }
+
+    // void viewBoard(int userId, bool target = false){
+    //   if(target){
+    //     // should abstract this to a func;
+    //     vector <coord> damagedZones;
+    //     int userIndex;
+
+    //     //retrieve zones for a player which have been fired upon;
+    //     for(int i = 0; i < _users.size(); i++){
+    //       if(_users[i].getId() == userId){
+    //         damagedZones = _users[i].getAttacked();
+    //         userIndex = i;
+    //       }
+    //     }
+
+    //     Log("Viewing ", _users[userIndex].getName(), "'s board as target");
+        
+    //     for(int x = 0; x < _boardSize.x; x++){
+    //       for(int y = 0; y < _boardSize.y; y++){
+    //         //if x & y match any attacked coords - print 'X'
+    //         if(checkCoord(x, y, userIndex, true)){
+    //           cout << 1;
+    //         } else {
+    //           //otherwise print '.'
+    //           cout << 0;
+    //         }
+    //       }
+    //       cout << endl;
+    //     }
+
+    //   } else {
+    //     // Log("Viewing ", getName(), "'s board as owner");
+
+    //   }
+    // }
 
     void deleteAllUsers(){
       _users.clear();
@@ -280,12 +335,18 @@ int main(){
   clsGamestate* state; // set variable 'Gamestate' as a pointer;
   state = clsGamestate::getInstance(); // assign the instance of clsGamestate;
 
-  state -> startNewGame();
+  // state -> startNewGame();
 
-  state -> printAllUsers();
+  // state -> printAllUsers();
+  
+  clsUser alex("Alex", 1); // create user
+  state -> registerUser(alex); // register alex
+  Log();
 
-Log("Board size X: ", to_string(state -> getBoardSize().x));
-Log("Board size Y: ", to_string(state -> getBoardSize().y));
+  alex.addOccupied(2, 2);
+
+  Log("Coord 2, 2 contains a ship?  ", to_string(alex.checkCoord(2, 2)));
+  Log("Coord 1, 2 contains a ship?  ", to_string(alex.checkCoord(1, 2)));
 
   // state -> viewBoard(1, true);
 }
