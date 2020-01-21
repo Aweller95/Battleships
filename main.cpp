@@ -50,8 +50,8 @@ I am using a naming scheme for helper functions to start with capital letters. T
 // };
 
 void Log(string message1 = "", string message2 = "", string message3 = ""){
-      cout << message1 << message2 << message3 << endl;
-    }
+    cout << message1 << message2 << message3 << endl;
+  }
 
 void ClearConsole(){
   cout << "\033[2J\033[0;0H"; // escape sequence that clears the console;
@@ -114,6 +114,9 @@ class clsUser{ //Observer
     
     void addOccupied(int x, int y){
       coord coordinate;
+      Log("You (" + getName() + ") placed a ship at ", to_string(x) + ", " + to_string(y));
+      Log();
+
       coordinate.x = x;
       coordinate.y = y;
       _occupied.push_back(coordinate);
@@ -124,9 +127,10 @@ class clsUser{ //Observer
     }
 
     void addAttacked(int x, int y){
-      Log(getName(), " was attacked at: ", to_string(x) + ", " + to_string(y));
-
       coord coordinate;
+      Log(getName(), " was attacked at: ", to_string(x) + ", " + to_string(y));
+      Log();
+
       coordinate.x = x;
       coordinate.y = y;
       _attacked.push_back(coordinate);
@@ -166,7 +170,7 @@ class clsUser{ //Observer
     int _id;
     string _name;
     vector < coord > _occupied; // represents a players personal board;
-    vector < coord > _attacked;
+    vector < coord > _attacked; // represents where users have fired at this users board;
     bool _cpu = false;
 };
 
@@ -217,7 +221,6 @@ class clsGamestate{
           result = true;
         }
       }
-
       return result;
     }
 
@@ -292,30 +295,38 @@ class clsGamestate{
 
     void viewBoard(clsUser &user, bool target = false){
       if(target){
-
         Log("Targeting ", user.getName(), "'s board");
         Log();
         
         for(int x = 0; x < getBoardSize().x; x++){
           for(int y = 0; y < getBoardSize().y; y++){
 
-            // Log("Has the user been hit at: ", to_string(x) + ", " + to_string(y) + "? ", to_string(user.checkCoord(x, y, true))); // debugging
-            // Log();
-
             if(user.checkCoord(x, y, true)){
               cout << "X ";
             } else {
-              Log("_ ");
+              cout << "_ ";
             }
           }
+          Log();
         }
 
       } else {
-        Log("Viewing your board");
+        Log("Viewing your (" + user.getName() + "'s) board");
         Log();
-        // Log("Viewing ", _users[userId].getName(), "'s board as owner");
 
+        for(int x = 0; x < getBoardSize().x; x++){
+          for(int y = 0; y < getBoardSize().y; y++){
+
+            if(user.checkCoord(x, y)){
+              cout << "S ";
+            } else {
+              cout << "_ ";
+            }
+          }
+          Log();
+        }
       }
+      Log();
     }
 
     void deleteAllUsers(){
@@ -336,18 +347,37 @@ clsGamestate* clsGamestate::_inst = NULL;
 int main(){
   clsGamestate* state; // set variable 'Gamestate' as a pointer;
   state = clsGamestate::getInstance(); // assign the instance of clsGamestate;
+  ////////////////////////////////////////////////////////////////////////////
 
-  state -> startNewGame();
+  // Prefill game rules for debugging;
+  state -> setBoardSize(10, 10);
+  state -> setPlayerCount(2);
+
+  clsUser user1 = clsUser("Alex", 1);
+  clsUser user2 = clsUser("John", 2);
+
+  state -> registerUser(user1);
+  state -> registerUser(user2);
 
   state -> printAllUsers();
+  ////////////////////////////////////////////////////////////////////////////
 
-  clsUser user1 = state -> getUserById(1);
+  state -> getUserById(1).addAttacked(0, 0);
+  state -> getUserById(1).addAttacked(0, 1);
+  
+  state -> getUserById(2).addAttacked(6, 6);
+  state -> getUserById(2).addAttacked(6, 7);
 
-  user1.addAttacked(0, 0);
-  user1.addAttacked(0, 1);
-  Log();
 
-  user1.printAttacked();
+  state -> getUserById(1).addOccupied(3, 5);
+  state -> getUserById(1).addOccupied(3, 6);
+  
+  state -> getUserById(2).addOccupied(9, 6);
+  state -> getUserById(2).addOccupied(9, 5);
 
-  state -> viewBoard(user1, true); // View board of player 1 as a target;
+  state -> viewBoard(state -> getUserById(1)); // View board of player 1 as the owner;
+  state -> viewBoard(state -> getUserById(1), true); // View board of player 1 as a target;
+
+  state -> viewBoard(state -> getUserById(2)); // View board of player 2 as the owner;
+  state -> viewBoard(state -> getUserById(2), true); // View board of player 2 as a target;
 }
