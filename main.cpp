@@ -124,8 +124,8 @@ class clsUser{ //Observer
     }
 
     void addAttacked(int x, int y){
-      Log(getName(), " added an attacked coord at: ", to_string(x) + ", " + to_string(y));
-      Log("Id: ", to_string(getId()));
+      Log(getName(), " was attacked at: ", to_string(x) + ", " + to_string(y));
+
       coord coordinate;
       coordinate.x = x;
       coordinate.y = y;
@@ -139,14 +139,12 @@ class clsUser{ //Observer
       if(target){ // If user is being targeted -> return tiles that have been attacked already;
         for(int i = 0; i < getAttacked().size(); i++){
           if(getAttacked()[i].x == x && getAttacked()[i].y == y){ // if the coords match return true;
-            Log("FOUND MATCHING ATTACKED COORD AT: ", to_string(x), " " + to_string(y));
             result = 1;
           }
         }
       } else { // If user is looking at their own board -> return tiles that are occupied by their own ships;
         for(int i = 0; i < getOccupied().size(); i++){
           if(getOccupied()[i].x == x && getOccupied()[i].y == y){ // if the coords match return true;
-            Log("FOUND MATCHING OCCUPIED COORD AT: ", to_string(x), " " + to_string(y));
             result = 1;
           }
         }
@@ -157,9 +155,11 @@ class clsUser{ //Observer
 
     //DEBUG func
     void printAttacked(){
+      Log("Printing attacked coords for ", getName());
       for(int i = 0; i < _attacked.size(); i++){
         Log(to_string(_attacked[i].x), " ",to_string(_attacked[i].y));
       }
+      Log();
     }
 
   private:
@@ -181,6 +181,10 @@ class clsGamestate{
 			return(_inst);
 		};
 
+    void setPlayerCount(int count){
+      _playerCount = count;
+    }
+
     int getPlayerCount(){
       return _playerCount;
     }
@@ -194,12 +198,10 @@ class clsGamestate{
       return _boardSize;
     }
 
-    void setPlayerCount(int count){
-      _playerCount = count;
-    }
-
     void initPlayerCount(){
       int playerCount;
+
+      ClearConsole();
 
       Log("Enter the number of players: ");
       cin >> playerCount;
@@ -211,7 +213,7 @@ class clsGamestate{
       bool result = false;
 
       for(int i = 0; i < _users.size(); i++){
-        if(_users[i] -> getName() == newName){
+        if(_users[i].getName() == newName){
           result = true;
         }
       }
@@ -220,6 +222,7 @@ class clsGamestate{
     }
 
     void initPlayers(){
+      ClearConsole();
       for(int i = 0; i < _playerCount; i++){
         string name;
         Log("Enter player ", to_string(i+1), "'s name:");
@@ -233,11 +236,12 @@ class clsGamestate{
         clsUser newUser(name, _users.size() + 1); // Create a new instance of a user with name and Id;
         registerUser(newUser); // register the new user;
       }
-      Log();
     }
 
     void initBoardSize(){
       int x, y;
+
+      ClearConsole();
 
       Log("Please enter the size of the X axis for player boards");
       cin >> x;
@@ -255,11 +259,12 @@ class clsGamestate{
     }
 
     void printAllUsers(){
+      ClearConsole();
       Log("Player List: ");
 
       if(_users.size()){
         for(int i = 0; i < _users.size(); i++){
-          Log(to_string(_users[i] -> getId()), "." , _users[i] -> getName());
+          Log(to_string(_users[i].getId()), "." , _users[i].getName());
         }
       } else {
         Log("!! No users registered !!");
@@ -267,60 +272,47 @@ class clsGamestate{
 
       Log();
     };
-        
+
     void registerUser(clsUser& user){
-      _users.push_back(&user); //Not sure about this using &;
+      _users.push_back(user);
     }
 
-    vector < clsUser* > getUsers(){
+    vector < clsUser > getUsers(){
       return _users;
     }
 
     clsUser& getUserById(int id){
       for(int i = 0; i < _users.size(); i++){
-        if(_users[i] -> getId() == id){
-          return *_users[i]; // Not sure about pointer implementation here either;
+        if(_users[i].getId() == id){
+          return _users[i];
         }
       }
       cout << "USER NOT FOUND";
     }
 
     void viewBoard(clsUser &user, bool target = false){
-      vector < coord > attacked; 
-
-      Log("Number of attacked coords: ", to_string(user.getAttacked().size())); //BREAKING HERE
-
-      for(int i = 0; i < user.getAttacked().size(); i++){
-        Log("HIT LOOP");
-        attacked.push_back(user.getAttacked()[i]);
-      }
-
       if(target){
 
-        Log("Viewing ", user.getName(), "'s board as target");
-
-        Log("1st attacked x coord ");
-        Log(to_string(user.getAttacked()[0].x)); //BREAKING HERE
-
-        Log("1st attacked y coord ", to_string(user.getAttacked()[0].y));
+        Log("Targeting ", user.getName(), "'s board");
+        Log();
         
         for(int x = 0; x < getBoardSize().x; x++){
           for(int y = 0; y < getBoardSize().y; y++){
-            //if x & y match any attacked coords - print 'X'
-            Log("Result of func call ", to_string(user.checkCoord(x, y, true)));
-            Log("Has the user been hit at: ", to_string(x) + " " + to_string(y) + " -> ", to_string(user.checkCoord(x, y, true)));
+
+            // Log("Has the user been hit at: ", to_string(x) + ", " + to_string(y) + "? ", to_string(user.checkCoord(x, y, true))); // debugging
+            // Log();
+
             if(user.checkCoord(x, y, true)){
-              Log("HIT 1");
-              cout << "X";
+              cout << "X ";
             } else {
-              Log("HIT 2");
-              //otherwise print '_'
-              // cout << "_ ";
+              Log("_ ");
             }
           }
         }
 
       } else {
+        Log("Viewing your board");
+        Log();
         // Log("Viewing ", _users[userId].getName(), "'s board as owner");
 
       }
@@ -333,7 +325,7 @@ class clsGamestate{
   private:
     int _state;
     int _playerCount;
-    vector < clsUser *> _users; // A vector containing a list of pointers to users;
+    vector < clsUser > _users; // A vector containing a list of pointers (values) to user classes;
     coord _boardSize;
     static clsGamestate* _inst;
 };
@@ -348,18 +340,14 @@ int main(){
   state -> startNewGame();
 
   state -> printAllUsers();
-  
-  // state -> setBoardSize(2, 2);
 
-  // clsUser alex("Alex", 1); // create user
-  // state -> registerUser(alex); // register alex
-  // Log();
+  clsUser user1 = state -> getUserById(1);
 
-  state -> getUserById(1).addAttacked(0, 0);
-  state -> getUserById(1).addAttacked(0, 1);
+  user1.addAttacked(0, 0);
+  user1.addAttacked(0, 1);
   Log();
 
-  state -> getUserById(1).printAttacked();
+  user1.printAttacked();
 
-  state -> viewBoard(state -> getUserById(1), true); // View board of player 1 as a target;
+  state -> viewBoard(user1, true); // View board of player 1 as a target;
 }
