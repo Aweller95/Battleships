@@ -19,6 +19,8 @@ class clsUser;
 class clsGamestate;
 
 const int NOVALUE = -1;
+const int VERT = 1;
+const int HORZ = 2;
 
 struct bulkhead{
   int x = NOVALUE;
@@ -57,6 +59,31 @@ void ClearConsole(){
   cout << "\033[2J\033[0;0H"; // escape sequence that clears the console;
 }
 
+string cleanString(string text){
+  string _local = text;
+  cout << endl << "BEFORE: [" <<_local << "]\n";
+
+  for(int i = 0; i < _local.length(); i++){
+    if(_local[i] == ' ' && _local[i+1] != ' '){//if singlespace;
+      _local.erase(i, 1);
+    }else if(_local[i] == ' ' && _local[i+1] == ' '){ // if doublespace;
+      _local.erase(i, 2);
+    } 
+  }
+
+  if(_local[0] == ' '){
+    _local.erase(0, 1);
+  }
+
+  if(_local[_local.size()] == ' '){
+    _local.erase(_local.size(), 1);
+  }
+
+  cout << "AFTER : [" <<_local << "]";
+
+  return _local;
+};
+
 //SHIP CLASS
 class clsShip{
   public:
@@ -66,14 +93,35 @@ class clsShip{
       buildBulkheads();
     }
 
-    void buildBulkheads(void){
+    void buildBulkheads(){
       for(int i = 0; i < _length; i++){
         bulkhead newBulkhead;
         _bulkheads.push_back(newBulkhead);
       }
     }
 
-    vector <bulkhead> getBulkheads(void){
+    void updateBulkheads(int x, int y){
+      for(int i = 0; i < _bulkheads.size(); i++){
+        _bulkheads[i].x = x + i;
+        _bulkheads[i].y = y + i;
+      }
+    }
+
+    int getOrientation(){
+      return _orientation;
+    }
+
+    void setOrientation(char orient){
+      if(orient == 'h'){
+        _orientation = HORZ;
+      } else if(orient == 'v'){
+        _orientation = VERT;
+      } else {
+        Log("Invalid orientation entered!");
+      }
+    }
+
+    vector <bulkhead> getBulkheads(){
       return _bulkheads;
     }
 
@@ -86,18 +134,20 @@ class clsShip{
     }
 
   private:
-    int _id;
+    int _orientation;
     int _length;
     string _name;
-    vector<bulkhead> _bulkheads;
+    vector < bulkhead > _bulkheads;
 };
 
 //USER CLASS
 class clsUser{ //Observer
   public:
-    clsUser(string name, int id){//constructor
+    clsUser(string name, int id, bool isCPU, vector < clsShip > config){//constructor
       _name = name;
       _id = id;
+      _cpu = isCPU;
+      buildFleet(config);
     }
 
     string getName(){
@@ -111,15 +161,71 @@ class clsUser{ //Observer
     vector < udtCoord > getOccupied(){
       return _occupied;
     }
+
+    void buildFleet(vector < clsShip > fleetConfig){
+      for(int i = 0; i < fleetConfig.size(); i++){
+        _ships.push_back(fleetConfig[i]);
+      }
+    }
+
+    bool validateCoord(int xSize, int ySize, int point){
+      if(point > xSize || point < 0 || point > ySize){
+        return false;
+      }
+      return true;
+    }
+
+    void placeShips(int xSize, int ySize){
+      for(int i = 0; i < _ships.size(); i++){
+        int x, y;
+        char orient;
+        ClearConsole();
+
+        Log(getName(), " is being asked to place their ", _ships[i].getName());
+
+        Log("Enter X coord");
+        cin >> x;
+
+        while(!validateCoord(xSize, ySize, x)){ //validate x coord
+          Log("Invalid X coordinate entered, please enter a coordinate between 0, " ,to_string(xSize));
+          cin >> x;
+        }
+        
+        Log("Enter Y coord");
+        cin >> y;
+
+        while(!validateCoord(xSize, ySize, y)){ //validate y coord
+          Log("Invalid X coordinate entered, please enter a coordinate between 0, " ,to_string(ySize));
+          cin >> y;
+        }
+
+        Log("Enter orientation (h/v)");
+        cin >> orient;
+
+        while(orient != 'h' && orient != 'v'){ //validate orientation
+          Log("Please enter a valid orientation (h/v)");
+          cin >> orient;
+        }
+
+        Log("Placing ship...");
+
+        _ships[i].setOrientation(orient); // set orientation
+        _ships[i].updateBulkheads(x, y); // set intial coord
+        placeShip(_ships[i]);
+      }
+    }
     
-    void addOccupied(int x, int y){
-      udtCoord coordinate;
-      Log("You (" + getName() + ") placed a ship at ", to_string(x) + ", " + to_string(y));
+    void placeShip(clsShip ship){ //DEBUG FUNC
+      Log(getName() + " placed their ", ship.getName());
       Log();
 
-      coordinate.x = x;
-      coordinate.y = y;
-      _occupied.push_back(coordinate);
+      for(int i = 0; i < ship.getBulkheads().size(); i++){
+        udtCoord coordinate;
+        coordinate.x = ship.getBulkheads()[i].x;
+        coordinate.y = ship.getBulkheads()[i].y;
+
+        _occupied.push_back(coordinate);
+      }
     }
 
     vector < udtCoord > getAttacked(){
@@ -136,7 +242,7 @@ class clsUser{ //Observer
       _attacked.push_back(coordinate);
     }
     
-    bool checkCoord(int x, int y, bool target = false){ // Using polymorphism - behaviour of this func changes depending if the user is a target or is checking their own ships;
+    bool getAttackedOrOccupied(int x, int y, bool target = false){ // Using polymorphism - behaviour of this func changes depending if the user is a target or is checking their own ships;
       int result = false;
       vector < udtCoord > tempCoords;
 
@@ -165,14 +271,19 @@ class clsUser{ //Observer
       Log();
     }
 
+    void isCPU(){ //DEBUG FUNC
+      Log(getName(), " isCPU -> ", to_string(_cpu));
+    }
+
   private:
     int _id;
     string _name;
     vector < udtCoord > _occupied; // represents a players personal board;
     vector < udtCoord > _attacked; // represents where users have fired at this users board;
+    vector < clsShip > _ships;
     bool _ready = false;
     bool _cpu = false;
-};
+}; // Maybe a class for CPU players inheirits clsUser & includes the AI in that inheirited class?
 
 //GAMESTATE CLASS - Combined Singleton + State Machine Design Patterns
 class clsGamestate{
@@ -202,7 +313,7 @@ class clsGamestate{
       return _boardSize;
     }
 
-    void initPlayerCount(){
+    void initPlayerCount(bool ai = false){
       int playerCount;
 
       ClearConsole();
@@ -225,9 +336,13 @@ class clsGamestate{
     }
 
     void initPlayers(){
+      char userChoice;
+      bool isCPU = false;
       ClearConsole();
+
       for(int i = 0; i < _playerCount; i++){
         string name;
+
         Log("Enter player ", to_string(i+1), "'s name:");
         cin >> name;
 
@@ -236,8 +351,19 @@ class clsGamestate{
           cin >> name;
         }
 
-        clsUser newUser(name, _users.size() + 1); // Create a new instance of a user with name and Id;
+        // Log("Is ", name, " a CPU player? (y/n)");
+        // while(userChoice != 'y' && userChoice != 'n'){
+        //   cin >> userChoice;
+        // }
+
+        if(userChoice == 'y'){
+          isCPU = true;
+        }
+
+        clsUser newUser(name, _users.size() + 1, isCPU, _fleetConfig); // Create a new instance of a user with name and Id;
         registerUser(newUser); // register the new user;
+        userChoice = ' '; //reset userchoice;
+        isCPU = false; //reset isCPU;
       }
     }
 
@@ -255,7 +381,7 @@ class clsGamestate{
       setBoardSize(x, y);
     }
 
-    void startNewGame(){
+    void startNewGame(){ // controls sequence of events for a game to be played;
       deleteAllUsers(); //reset the game by destroying all active players;
 
       initBoardSize();
@@ -263,10 +389,10 @@ class clsGamestate{
       initPlayers();
 
       printAllUsers();
-      startTurn();
+      startGame();
     }
 
-    void startTurn(){
+    void startGame(){
       char userChoice;
 
       if(_activePlayer == 0){
@@ -276,18 +402,45 @@ class clsGamestate{
         }
 
         if(userChoice == 'n'){
-          Log("Restarting...");
           startNewGame();
         }
 
         if(userChoice == 'y'){
+          ClearConsole();
           Log("Game starting...");
-          _activePlayer++; //start executing observer pattern - remote call 'placeShips' for each user;
+          _activePlayer = 1; //start executing observer pattern - remote call 'placeShips' for each user;
+          _stage = 1;
+          updateUsers();
         }
       }
+    }
 
-      if(_activePlayer < _playerCount){
-        //show users board + prompt for target
+    void progressTurn(){
+      char choice;
+      
+      Log("Ready to continue? (y/n)");
+      cin >> choice;
+
+      while(choice != 'y' && choice != 'n'){
+        Log("Please enter 'y' or 'n'");
+        cin >> choice;
+      }
+    }
+
+    void updateUsers(){
+      if(_stage == 1){ // if stage is 'placement' - get players to place ships;
+        for(int i = 1; i < _users.size(); i++){
+          viewBoard(_users[i]); // view board before placing
+          _users[i].placeShips(getBoardSize().x, getBoardSize().y); // get user to place their boats;
+          viewBoard(_users[i]); //view board after placing
+          progressTurn(); // wait for user to input to continue
+        }
+      } else if(_stage == 2){ // if stage is 'play' - cycle through users to choose target & attack;
+        //If _playerCount > 1;
+        //promptForTarget(_activePlayer); 
+      } else if(_stage == 3){ // if stage is 'winner' - display winner screen to remaining player(s);
+        //display winner screen;
+        //ask if they want to play again;
       }
     }
 
@@ -331,7 +484,7 @@ class clsGamestate{
         for(int x = 0; x < getBoardSize().x; x++){
           for(int y = 0; y < getBoardSize().y; y++){
 
-            if(user.checkCoord(x, y, true)){
+            if(user.getAttackedOrOccupied(x, y, true)){
               cout << "X ";
             } else {
               cout << "_ ";
@@ -347,7 +500,7 @@ class clsGamestate{
         for(int x = 0; x < getBoardSize().x; x++){
           for(int y = 0; y < getBoardSize().y; y++){
 
-            if(user.checkCoord(x, y)){
+            if(user.getAttackedOrOccupied(x, y)){
               cout << "S ";
             } else {
               cout << "_ ";
@@ -359,23 +512,22 @@ class clsGamestate{
       Log();
     }
 
-    bool validateCoord(udtCoord coord){
-      if(coord.x > getBoardSize().x || coord.x < 0 || coord.y > getBoardSize().y || coord.y < 0){
-        return false;
-      }
-      return true;
-    }
-
     void deleteAllUsers(){
       if(_users.size()){
         _users.clear();
       }
     }
 
+    void registerShip(clsShip ship){
+      _fleetConfig.push_back(ship);
+    }
+
   private:
+    int _stage = 0;
     int _activePlayer = 0;
     int _playerCount;
     vector < clsUser > _users;
+    vector < clsShip > _fleetConfig;
     udtCoord _boardSize;
     static clsGamestate* _inst;
 };
@@ -387,6 +539,15 @@ int main(){
   clsGamestate* state; // set variable 'Gamestate' as a pointer;
   state = clsGamestate::getInstance(); // assign the instance of clsGamestate;
   
+
+  clsShip destroyer("Destroyer", 4); //will be read from a file + built at runtime
+  clsShip patrolBoat("Patrol Boat", 2);
+
+  state -> registerShip(destroyer); //register the ship config for the game
+  state -> registerShip(patrolBoat); //call register ship loop at runtime based on file content
+
   state -> startNewGame();
+
+
 
 }
