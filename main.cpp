@@ -13,7 +13,7 @@ NOTES
 -- Board needs to be able to iterate through all users & then iterate through each users ship vector;
 */
 
-// Declare classes here initially to enable interdependence;
+// Declare classes here initially to enable interdependence of classes;
 class clsShip;
 class clsUser;
 class clsGamestate;
@@ -26,7 +26,7 @@ struct bulkhead{
   bool hit = false;
 };
 
-struct coord{
+struct udtCoord{
   int x;
   int y;
 };
@@ -108,12 +108,12 @@ class clsUser{ //Observer
       return _id;
     }
 
-    vector < coord > getOccupied(){
+    vector < udtCoord > getOccupied(){
       return _occupied;
     }
     
     void addOccupied(int x, int y){
-      coord coordinate;
+      udtCoord coordinate;
       Log("You (" + getName() + ") placed a ship at ", to_string(x) + ", " + to_string(y));
       Log();
 
@@ -122,12 +122,12 @@ class clsUser{ //Observer
       _occupied.push_back(coordinate);
     }
 
-    vector < coord > getAttacked(){
+    vector < udtCoord > getAttacked(){
       return _attacked;
     }
 
     void addAttacked(int x, int y){
-      coord coordinate;
+      udtCoord coordinate;
       Log(getName(), " was attacked at: ", to_string(x) + ", " + to_string(y));
       Log();
 
@@ -136,32 +136,31 @@ class clsUser{ //Observer
       _attacked.push_back(coordinate);
     }
     
-    int checkCoord(int x, int y, bool target = false){ // Using polymorphism - behaviour of this func changes depending if the user is a target or is checking their own ships;
-      int result = 0;
-      vector < coord > tempCoords;
+    bool checkCoord(int x, int y, bool target = false){ // Using polymorphism - behaviour of this func changes depending if the user is a target or is checking their own ships;
+      int result = false;
+      vector < udtCoord > tempCoords;
 
       if(target){ // If user is being targeted -> return tiles that have been attacked already;
         for(int i = 0; i < getAttacked().size(); i++){
           if(getAttacked()[i].x == x && getAttacked()[i].y == y){ // if the coords match return true;
-            result = 1;
+            result = true;
           }
         }
       } else { // If user is looking at their own board -> return tiles that are occupied by their own ships;
         for(int i = 0; i < getOccupied().size(); i++){
           if(getOccupied()[i].x == x && getOccupied()[i].y == y){ // if the coords match return true;
-            result = 1;
+            result = true;
           }
         }
       }
-
       return result;
     }
 
-    //DEBUG func
+    //DEBUG function to print a users attacked coords to the console;
     void printAttacked(){
       Log("Printing attacked coords for ", getName());
       for(int i = 0; i < _attacked.size(); i++){
-        Log(to_string(_attacked[i].x), " ",to_string(_attacked[i].y));
+        Log(to_string(_attacked[i].x), ", ",to_string(_attacked[i].y));
       }
       Log();
     }
@@ -169,8 +168,9 @@ class clsUser{ //Observer
   private:
     int _id;
     string _name;
-    vector < coord > _occupied; // represents a players personal board;
-    vector < coord > _attacked; // represents where users have fired at this users board;
+    vector < udtCoord > _occupied; // represents a players personal board;
+    vector < udtCoord > _attacked; // represents where users have fired at this users board;
+    bool _ready = false;
     bool _cpu = false;
 };
 
@@ -198,7 +198,7 @@ class clsGamestate{
       _boardSize.y = y;
     }
 
-    coord getBoardSize(){
+    udtCoord getBoardSize(){
       return _boardSize;
     }
 
@@ -256,9 +256,39 @@ class clsGamestate{
     }
 
     void startNewGame(){
+      deleteAllUsers(); //reset the game by destroying all active players;
+
       initBoardSize();
       initPlayerCount();
       initPlayers();
+
+      printAllUsers();
+      startTurn();
+    }
+
+    void startTurn(){
+      char userChoice;
+
+      if(_activePlayer == 0){
+        while(userChoice != 'y' && userChoice != 'n'){
+          Log("Ready to start the game? (y/n)");
+          cin >> userChoice;
+        }
+
+        if(userChoice == 'n'){
+          Log("Restarting...");
+          startNewGame();
+        }
+
+        if(userChoice == 'y'){
+          Log("Game starting...");
+          _activePlayer++; //start executing observer pattern - remote call 'placeShips' for each user;
+        }
+      }
+
+      if(_activePlayer < _playerCount){
+        //show users board + prompt for target
+      }
     }
 
     void printAllUsers(){
@@ -329,15 +359,24 @@ class clsGamestate{
       Log();
     }
 
+    bool validateCoord(udtCoord coord){
+      if(coord.x > getBoardSize().x || coord.x < 0 || coord.y > getBoardSize().y || coord.y < 0){
+        return false;
+      }
+      return true;
+    }
+
     void deleteAllUsers(){
-      _users.clear();
+      if(_users.size()){
+        _users.clear();
+      }
     }
 
   private:
-    int _state;
+    int _activePlayer = 0;
     int _playerCount;
-    vector < clsUser > _users; // A vector containing a list of pointers (values) to user classes;
-    coord _boardSize;
+    vector < clsUser > _users;
+    udtCoord _boardSize;
     static clsGamestate* _inst;
 };
 
@@ -347,37 +386,7 @@ clsGamestate* clsGamestate::_inst = NULL;
 int main(){
   clsGamestate* state; // set variable 'Gamestate' as a pointer;
   state = clsGamestate::getInstance(); // assign the instance of clsGamestate;
-  ////////////////////////////////////////////////////////////////////////////
-
-  // Prefill game rules for debugging;
-  state -> setBoardSize(10, 10);
-  state -> setPlayerCount(2);
-
-  clsUser user1 = clsUser("Alex", 1);
-  clsUser user2 = clsUser("John", 2);
-
-  state -> registerUser(user1);
-  state -> registerUser(user2);
-
-  state -> printAllUsers();
-  ////////////////////////////////////////////////////////////////////////////
-
-  state -> getUserById(1).addAttacked(0, 0);
-  state -> getUserById(1).addAttacked(0, 1);
   
-  state -> getUserById(2).addAttacked(6, 6);
-  state -> getUserById(2).addAttacked(6, 7);
+  state -> startNewGame();
 
-
-  state -> getUserById(1).addOccupied(3, 5);
-  state -> getUserById(1).addOccupied(3, 6);
-  
-  state -> getUserById(2).addOccupied(9, 6);
-  state -> getUserById(2).addOccupied(9, 5);
-
-  state -> viewBoard(state -> getUserById(1)); // View board of player 1 as the owner;
-  state -> viewBoard(state -> getUserById(1), true); // View board of player 1 as a target;
-
-  state -> viewBoard(state -> getUserById(2)); // View board of player 2 as the owner;
-  state -> viewBoard(state -> getUserById(2), true); // View board of player 2 as a target;
 }
