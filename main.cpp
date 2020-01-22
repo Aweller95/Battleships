@@ -100,25 +100,25 @@ class clsShip{
       }
     }
 
-    void updateBulkheads(int x, int y, int xSize, int ySize){
+    void updateBulkheads(int x, int y, int xSize, int ySize, char direction){
       for(int i = 0; i < _bulkheads.size(); i++){
-        if(getOrientation() == 'h'){
+        if(direction == 'l'){
+          _bulkheads[i].x = x;
+          _bulkheads[i].y = y - i;
+
+        } else if(direction == 'r'){
           _bulkheads[i].x = x;
           _bulkheads[i].y = y + i;
+          
+        } else if(direction == 'u'){
+          _bulkheads[i].x = x - i;
+          _bulkheads[i].y = y;
 
-        } else if(getOrientation() == 'v'){
+        } else if(direction == 'd'){
           _bulkheads[i].x = x + i;
           _bulkheads[i].y = y;
         }
       }
-    }
-
-    int getOrientation(){
-      return _orientation;
-    }
-
-    void setOrientation(char orient){
-      _orientation = orient;
     }
 
     vector <bulkhead> getBulkheads(){
@@ -134,7 +134,6 @@ class clsShip{
     }
 
   private:
-    char _orientation;
     int _length;
     string _name;
     vector < bulkhead > _bulkheads;
@@ -214,9 +213,9 @@ class clsUser{ //Observer
     void placeShips(int xSize, int ySize){
       for(int i = 0; i < _ships.size(); i++){
         int x, y;
-        char orient;
+        char orient, direction;
 
-        // ClearConsole();
+        ClearConsole();
 
         Log(getName(), " is being asked to place their ", _ships[i].getName());
 
@@ -238,44 +237,62 @@ class clsUser{ //Observer
           cin >> y;
         }
 
-        Log("Enter orientation (h/v)");
-        cin >> orient;
+        Log("Enter heading, up, down, left, right (u/d/l/r)"); // get user to input direction
+        cin >> direction;
 
-        while(orient != 'h' && orient != 'v'){ //validate orientation
-          Log("Please enter a valid orientation (h/v)");
-          cin >> orient;
+        while(direction != 'u' && direction != 'd' && direction != 'l' && direction != 'r' ){ //validate direction
+          Log("Please enter a valid heading (u/d/l/r)");
+          cin >> direction;
         }
 
+        if(direction == 'r'){ // if ship wont fit horizontally heading right - change location
+          while(y + _ships[i].getLength() > ySize){ // HORIZONTAL - HEADING RIGHT
+            Log("Your ", _ships[i].getName(), " is too long to be placed heading right");
+
+            Log("Please enter a new valid X coordinate");
+            cin >> x;
+
+            Log("Please enter a new valid Y coordinate");
+            cin >> y;
+          }
+        } else if (direction == 'l'){
+            while(y - _ships[i].getLength() < 0){ // HORIZONTAL - HEADING LEFT
+              Log("Your ", _ships[i].getName(), " is too long to be placed heading left");
+
+              Log("Please enter a new valid X coordinate");
+              cin >> x;
+
+              Log("Please enter a new valid Y coordinate");
+              cin >> y;
+            }
+          } else if(direction == 'u'){
+            while(x - _ships[i].getLength() < 0){ //VERTICAL - HEADING UP
+              Log("Ship is too long to be placed vertically");
+
+              Log("Please enter a new valid X coordinate");
+              cin >> x;
+
+              Log("Please enter a new valid Y coordinate");
+              cin >> y;
+            }
+          } else if (direction == 'd'){
+            while(x + _ships[i].getLength() > xSize){ //VERTICAL - HEADING DOWN
+              Log("Ship is too long to be placed vertically");
+
+              Log("Please enter a new valid X coordinate");
+              cin >> x;
+
+              Log("Please enter a new valid Y coordinate");
+              cin >> y;
+            }
+          }
+
+        
         Log("Placing ship...");
 
-        _ships[i].setOrientation(orient); // set orientation
-
-        
-        if(orient == 'h'){
-          while(y + _ships[i].getLength() > ySize){ // HORIZONTAL
-            Log("Your ", _ships[i].getName(), " is too long to be placed horizontally");
-
-            Log("Please enter a new valid X coordinate");
-            cin >> x;
-
-            Log("Please enter a new valid Y coordinate");
-            cin >> y;
-          }
-        } else if(orient == 'v'){
-          while(x + _ships[i].getLength() > xSize){ //VERTICAL
-            Log("Ship is too long to be placed vertically");
-
-            Log("Please enter a new valid X coordinate");
-            cin >> x;
-
-            Log("Please enter a new valid Y coordinate");
-            cin >> y;
-          }
-        }
-        
-
-        _ships[i].updateBulkheads(x, y, xSize, ySize);
+        _ships[i].updateBulkheads(x, y, xSize, ySize, direction);
         placeShip(_ships[i]);
+        ClearConsole();
         viewBoard(xSize, ySize);
       }
     }
@@ -332,6 +349,15 @@ class clsUser{ //Observer
       Log("Printing attacked coords for ", getName());
       for(int i = 0; i < _attacked.size(); i++){
         Log(to_string(_attacked[i].x), ", ",to_string(_attacked[i].y));
+      }
+      Log();
+    }
+
+    //DEBUG function to print a users occupied coords to the console;
+    void printOccupied(){
+      Log("Printing occupied coords for ", getName());
+      for(int i = 0; i < _occupied.size(); i++){
+        Log(to_string(_occupied[i].x), ", ",to_string(_occupied[i].y));
       }
       Log();
     }
