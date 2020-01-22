@@ -100,10 +100,16 @@ class clsShip{
       }
     }
 
-    void updateBulkheads(int x, int y){
+    void updateBulkheads(int x, int y, int xSize, int ySize){
       for(int i = 0; i < _bulkheads.size(); i++){
-        _bulkheads[i].x = x + i;
-        _bulkheads[i].y = y + i;
+        if(getOrientation() == 'h'){
+          _bulkheads[i].x = x;
+          _bulkheads[i].y = y + i;
+
+        } else if(getOrientation() == 'v'){
+          _bulkheads[i].x = x + i;
+          _bulkheads[i].y = y;
+        }
       }
     }
 
@@ -112,13 +118,7 @@ class clsShip{
     }
 
     void setOrientation(char orient){
-      if(orient == 'h'){
-        _orientation = HORZ;
-      } else if(orient == 'v'){
-        _orientation = VERT;
-      } else {
-        Log("Invalid orientation entered!");
-      }
+      _orientation = orient;
     }
 
     vector <bulkhead> getBulkheads(){
@@ -134,7 +134,7 @@ class clsShip{
     }
 
   private:
-    int _orientation;
+    char _orientation;
     int _length;
     string _name;
     vector < bulkhead > _bulkheads;
@@ -168,25 +168,64 @@ class clsUser{ //Observer
       }
     }
 
-    bool validateCoord(int xSize, int ySize, int point){
+    bool validateOriginCoord(int xSize, int ySize, int point){
       if(point > xSize || point < 0 || point > ySize){
         return false;
       }
       return true;
     }
 
+    void viewBoard(int xSize, int ySize, bool target = false){
+      if(target){
+        Log("Targeting ", getName(), "'s board");
+        Log();
+        
+        for(int x = 0; x < xSize; x++){
+          for(int y = 0; y < ySize; y++){
+
+            if(getAttackedOrOccupied(x, y, true)){
+              cout << "X ";
+            } else {
+              cout << "_ ";
+            }
+          }
+          Log();
+        }
+
+      } else {
+        Log("Viewing your (" + getName() + "'s) board");
+        Log();
+
+        for(int x = 0; x < xSize; x++){
+          for(int y = 0; y < ySize; y++){
+
+            if(getAttackedOrOccupied(x, y)){
+              cout << "S ";
+            } else {
+              cout << "_ ";
+            }
+          }
+          Log();
+        }
+      }
+      Log();
+    }
+
     void placeShips(int xSize, int ySize){
       for(int i = 0; i < _ships.size(); i++){
         int x, y;
         char orient;
-        ClearConsole();
+
+        // ClearConsole();
 
         Log(getName(), " is being asked to place their ", _ships[i].getName());
+
+        viewBoard(xSize, ySize);
 
         Log("Enter X coord");
         cin >> x;
 
-        while(!validateCoord(xSize, ySize, x)){ //validate x coord
+        while(!validateOriginCoord(xSize, ySize, x)){ //validate x coord
           Log("Invalid X coordinate entered, please enter a coordinate between 0, " ,to_string(xSize));
           cin >> x;
         }
@@ -194,7 +233,7 @@ class clsUser{ //Observer
         Log("Enter Y coord");
         cin >> y;
 
-        while(!validateCoord(xSize, ySize, y)){ //validate y coord
+        while(!validateOriginCoord(xSize, ySize, y)){ //validate y coord
           Log("Invalid X coordinate entered, please enter a coordinate between 0, " ,to_string(ySize));
           cin >> y;
         }
@@ -210,12 +249,38 @@ class clsUser{ //Observer
         Log("Placing ship...");
 
         _ships[i].setOrientation(orient); // set orientation
-        _ships[i].updateBulkheads(x, y); // set intial coord
+
+        
+        if(orient == 'h'){
+          while(y + _ships[i].getLength() > ySize){ // HORIZONTAL
+            Log("Your ", _ships[i].getName(), " is too long to be placed horizontally");
+
+            Log("Please enter a new valid X coordinate");
+            cin >> x;
+
+            Log("Please enter a new valid Y coordinate");
+            cin >> y;
+          }
+        } else if(orient == 'v'){
+          while(x + _ships[i].getLength() > xSize){ //VERTICAL
+            Log("Ship is too long to be placed vertically");
+
+            Log("Please enter a new valid X coordinate");
+            cin >> x;
+
+            Log("Please enter a new valid Y coordinate");
+            cin >> y;
+          }
+        }
+        
+
+        _ships[i].updateBulkheads(x, y, xSize, ySize);
         placeShip(_ships[i]);
+        viewBoard(xSize, ySize);
       }
     }
     
-    void placeShip(clsShip ship){ //DEBUG FUNC
+    void placeShip(clsShip ship){
       Log(getName() + " placed their ", ship.getName());
       Log();
 
@@ -408,7 +473,6 @@ class clsGamestate{
         if(userChoice == 'y'){
           ClearConsole();
           Log("Game starting...");
-          _activePlayer = 1; //start executing observer pattern - remote call 'placeShips' for each user;
           _stage = 1;
           updateUsers();
         }
@@ -429,12 +493,12 @@ class clsGamestate{
 
     void updateUsers(){
       if(_stage == 1){ // if stage is 'placement' - get players to place ships;
-        for(int i = 1; i < _users.size(); i++){
-          viewBoard(_users[i]); // view board before placing
+        for(int i = 0; i < _users.size(); i++){
           _users[i].placeShips(getBoardSize().x, getBoardSize().y); // get user to place their boats;
-          viewBoard(_users[i]); //view board after placing
           progressTurn(); // wait for user to input to continue
+          ClearConsole();
         }
+        _stage = 2;
       } else if(_stage == 2){ // if stage is 'play' - cycle through users to choose target & attack;
         //If _playerCount > 1;
         //promptForTarget(_activePlayer); 
@@ -476,41 +540,7 @@ class clsGamestate{
       cout << "USER NOT FOUND";
     }
 
-    void viewBoard(clsUser &user, bool target = false){
-      if(target){
-        Log("Targeting ", user.getName(), "'s board");
-        Log();
-        
-        for(int x = 0; x < getBoardSize().x; x++){
-          for(int y = 0; y < getBoardSize().y; y++){
-
-            if(user.getAttackedOrOccupied(x, y, true)){
-              cout << "X ";
-            } else {
-              cout << "_ ";
-            }
-          }
-          Log();
-        }
-
-      } else {
-        Log("Viewing your (" + user.getName() + "'s) board");
-        Log();
-
-        for(int x = 0; x < getBoardSize().x; x++){
-          for(int y = 0; y < getBoardSize().y; y++){
-
-            if(user.getAttackedOrOccupied(x, y)){
-              cout << "S ";
-            } else {
-              cout << "_ ";
-            }
-          }
-          Log();
-        }
-      }
-      Log();
-    }
+    
 
     void deleteAllUsers(){
       if(_users.size()){
@@ -547,7 +577,4 @@ int main(){
   state -> registerShip(patrolBoat); //call register ship loop at runtime based on file content
 
   state -> startNewGame();
-
-
-
 }
