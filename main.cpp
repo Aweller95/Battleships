@@ -167,7 +167,17 @@ class clsUser{ //Observer
       }
     }
 
+    bool checkIfCollision(int x, int y){
+      for(int i = 0; i < _occupied.size(); i++){
+        if(_occupied[i].x == x && _occupied[i].y == y){
+          return true;
+        }
+      }
+      return false;
+    }
+
     bool validateOriginCoord(int xSize, int ySize, int point){
+
       if(point > xSize || point < 0 || point > ySize){
         return false;
       }
@@ -217,7 +227,7 @@ class clsUser{ //Observer
 
         ClearConsole();
 
-        Log(getName(), " is being asked to place their ", _ships[i].getName());
+        Log(getName(), " is being asked to place their ", _ships[i].getName() + " (" + to_string(_ships[i].getLength()) + ")");
 
         viewBoard(xSize, ySize);
 
@@ -237,6 +247,15 @@ class clsUser{ //Observer
           cin >> y;
         }
 
+        while(checkIfCollision(x, y)){
+          Log("Placing your" + _ships[i].getName() + " here, will cause it to collide with another ship\n");
+          Log("Please enter a new X coordinate");
+          cin >> x;
+          
+          Log("Please enter a new Y coordinate");
+          cin >> y;
+        }
+
         Log("Enter heading, up, down, left, right (u/d/l/r)"); // get user to input direction
         cin >> direction;
 
@@ -245,48 +264,36 @@ class clsUser{ //Observer
           cin >> direction;
         }
 
-        if(direction == 'r'){ // if ship wont fit horizontally heading right - change location
-          while(y + _ships[i].getLength() > ySize){ // HORIZONTAL - HEADING RIGHT
-            Log("Your ", _ships[i].getName(), " is too long to be placed heading right");
+        bool canPlace = false;
 
-            Log("Please enter a new valid X coordinate");
-            cin >> x;
-
-            Log("Please enter a new valid Y coordinate");
-            cin >> y;
-          }
-        } else if (direction == 'l'){
-            while(y - _ships[i].getLength() < 0){ // HORIZONTAL - HEADING LEFT
-              Log("Your ", _ships[i].getName(), " is too long to be placed heading left");
-
-              Log("Please enter a new valid X coordinate");
-              cin >> x;
-
-              Log("Please enter a new valid Y coordinate");
-              cin >> y;
-            }
-          } else if(direction == 'u'){
-            while(x - _ships[i].getLength() < 0){ //VERTICAL - HEADING UP
-              Log("Ship is too long to be placed vertically");
-
-              Log("Please enter a new valid X coordinate");
-              cin >> x;
-
-              Log("Please enter a new valid Y coordinate");
-              cin >> y;
-            }
-          } else if (direction == 'd'){
-            while(x + _ships[i].getLength() > xSize){ //VERTICAL - HEADING DOWN
-              Log("Ship is too long to be placed vertically");
-
-              Log("Please enter a new valid X coordinate");
-              cin >> x;
-
-              Log("Please enter a new valid Y coordinate");
-              cin >> y;
-            }
+        while(!canPlace){
+          if(direction == 'r' && !(y + _ships[i].getLength() > ySize)){ // HORIZONTAL - HEADING RIGHT
+            canPlace = true;
+            break;
           }
 
+          if(direction == 'l' && !(y - _ships[i].getLength() < 0)){ // HORIZONTAL - HEADING LEFT
+            canPlace = true;
+            break;
+          } 
+
+          if(direction == 'u' && !(x - _ships[i].getLength() < 0)){ //VERTICAL - HEADING UP
+           canPlace = true;
+           break;
+          }
+
+          if(direction == 'd' && !(x + _ships[i].getLength() > xSize)){ //VERTICAL - HEADING DOWN
+            canPlace = true;
+            break;
+          }
+
+          Log("Your ", _ships[i].getName(), " is too long to be placed at " + to_string(x) + ", " + to_string(y) + ", heading " + direction);
+          Log("Choose a different heading (u/d/l/r)");
+          cin >> direction;
+        }
+
+        Log("OCCUPIED!");
+        printOccupied();
         
         Log("Placing ship...");
 
@@ -596,11 +603,17 @@ int main(){
   state = clsGamestate::getInstance(); // assign the instance of clsGamestate;
   
 
-  clsShip destroyer("Destroyer", 4); //will be read from a file + built at runtime
+  clsShip carrier("Aircraft Carrier", 5);
+  clsShip battleship("Battleship", 4);
+  clsShip submarine("Submarine", 3);
+  clsShip cruiser("Cruiser", 3);
   clsShip patrolBoat("Patrol Boat", 2);
 
-  state -> registerShip(destroyer); //register the ship config for the game
-  state -> registerShip(patrolBoat); //call register ship loop at runtime based on file content
+  state -> registerShip(carrier); 
+  state -> registerShip(battleship); 
+  state -> registerShip(submarine); 
+  state -> registerShip(cruiser); 
+  state -> registerShip(patrolBoat); 
 
   state -> startNewGame();
 }
