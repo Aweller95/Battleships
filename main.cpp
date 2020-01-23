@@ -229,7 +229,7 @@ class clsUser{ //Observer
 
         Log(getName(), " is being asked to place their ", _ships[i].getName() + " (" + to_string(_ships[i].getLength()) + ")");
 
-        viewBoard(xSize, ySize);
+        viewBoard(xSize, ySize); // TODO: Prompt user to view board to prevent other users seeing it;
 
         Log("Enter X coord");
         cin >> x;
@@ -267,9 +267,14 @@ class clsUser{ //Observer
         bool canPlace = false;
 
         while(!canPlace){
-          if(direction == 'r' && !(y + _ships[i].getLength() > ySize)){ // HORIZONTAL - HEADING RIGHT
-            canPlace = true;
-            break;
+          string selected;
+
+          if(direction == 'r'){ // HORIZONTAL - HEADING RIGHT
+            if(!(y + _ships[i].getLength() > ySize)){
+              canPlace = true;
+              break;
+            }
+            selected = "right";
           }
 
           if(direction == 'l' && !(y - _ships[i].getLength() < 0)){ // HORIZONTAL - HEADING LEFT
@@ -278,8 +283,8 @@ class clsUser{ //Observer
           } 
 
           if(direction == 'u' && !(x - _ships[i].getLength() < 0)){ //VERTICAL - HEADING UP
-           canPlace = true;
-           break;
+            canPlace = true;
+            break;
           }
 
           if(direction == 'd' && !(x + _ships[i].getLength() > xSize)){ //VERTICAL - HEADING DOWN
@@ -287,15 +292,10 @@ class clsUser{ //Observer
             break;
           }
 
-          Log("Your ", _ships[i].getName(), " is too long to be placed at " + to_string(x) + ", " + to_string(y) + ", heading " + direction);
+          Log("Your ", _ships[i].getName(), " is too long to be placed at " + to_string(x) + ", " + to_string(y) + ", heading " + selected);
           Log("Choose a different heading (u/d/l/r)");
           cin >> direction;
         }
-
-        Log("OCCUPIED!");
-        printOccupied();
-        
-        Log("Placing ship...");
 
         _ships[i].updateBulkheads(x, y, xSize, ySize, direction);
         placeShip(_ships[i]);
