@@ -7,6 +7,13 @@ using namespace std;
 /* 
 NOTES
 
+Welcome to Alex Wellers...
+   ___         __   __   __           __    _          
+  / _ ) ___ _ / /_ / /_ / /___  ___  / /   (_)___   ___
+ / _  |/ _ `// __// __// // -_)(_-< / _ \ / // _ \ (_-<
+/____/ \_,_/ \__/ \__//_/ \__//___//_//_//_// .__//___/
+                                           /_/         
+
 - Gamestate contains a vector of users; The state registers new users;
 - User contains a vector of ships;
 - Board needs to know about players & ships - must subscribe to both User and Gamestate;
@@ -52,8 +59,75 @@ I am using a naming scheme for helper functions to start with capital letters. T
 // };
 
 void Log(string message1 = "", string message2 = "", string message3 = ""){
-    cout << message1 << message2 << message3 << endl;
-  }
+  cout << message1 << message2 << message3 << endl;
+}
+
+void printTitle(){  
+  string line1 = "   ___         __   __   __           __    _          ";
+  string line2 = "  / _ ) ___ _ / /_ / /_ / /___  ___  / /   (_)___   ___";
+  string line3 = " / _  |/ _ `// __// __// // -_)(_-< / _ \\ / // _ \\ (_-<";
+  string line4 = "/____/ \\_,_/ \\__/ \\__//_/ \\__//___//_//_//_// .__//___/";
+  string line5 = "                                           /_/         ";   
+
+  Log(line1);
+  Log(line2);
+  Log(line3);
+  Log(line4);
+  Log(line5);
+}
+
+void printConfigTitle(){  
+
+  string line1 = "  _____             ___ _      ";
+  string line2 = " / ___/___   ___   / _/(_)___ _";
+  string line3 = "/ /__ / _ \\ / _ \\ / _// // _ `/";
+  string line4 = "\\___/ \\___//_//_//_/ /_/ \\_, / ";
+  string line5 = "                        /___/  ";
+
+  Log(line1);
+  Log(line2);
+  Log(line3);
+  Log(line4);
+  Log(line5);
+}
+
+void printPlayersTitle(){
+  string line1 = "   ___   __                         ";
+  string line2 = "  / _ \\ / /___ _ __ __ ___  ____ ___";
+  string line3 = " / ___// // _ `// // // -_)/ __/(_-<";
+  string line4 = "/_/   /_/ \\_,_/ \\_, / \\__//_/  /___/";
+  string line5 = "               /___/                ";
+
+  Log(line1);
+  Log(line2);
+  Log(line3);
+  Log(line4);
+  Log(line5);
+}
+
+void printPlacementTitle(){
+string line1 = "   ___   __                                 __ ";
+string line2 = "  / _ \\ / /___ _ ____ ___  __ _  ___  ___  / /_";
+string line3 = " / ___// // _ `// __// -_)/  ' \\/ -_)/ _ \\/ __/";
+string line4 = "/_/   /_/ \\_,_/ \\__/ \\__//_/_/_/\\__//_//_/\\__/ ";
+                            
+  Log(line1);
+  Log(line2);
+  Log(line3);
+  Log(line4);                   
+}
+
+void printRed(string message){
+  cout << "\x1B[31m" + message + "\033[0m";
+}
+
+void printGreen(string message){
+  cout << "\x1B[32m" + message + "\033[0m";
+}
+
+void printOrange(string message){
+  cout << "\x1B[33m" + message + "\033[0m";
+}
 
 void ClearConsole(){
   cout << "\033[2J\033[0;0H"; // escape sequence that clears the console;
@@ -170,9 +244,11 @@ class clsUser{ //Observer
     bool checkIfCollision(int x, int y){
       for(int i = 0; i < _occupied.size(); i++){
         if(_occupied[i].x == x && _occupied[i].y == y){
+          Log("Found collision!");
           return true;
         }
       }
+      Log("No collision found");
       return false;
     }
 
@@ -190,6 +266,7 @@ class clsUser{ //Observer
         Log();
         
         for(int x = 0; x < xSize; x++){
+          cout << "| ";
           for(int y = 0; y < ySize; y++){
 
             if(getAttackedOrOccupied(x, y, true)){
@@ -200,12 +277,15 @@ class clsUser{ //Observer
           }
           Log();
         }
-
-      } else {
-        Log("Viewing your (" + getName() + "'s) board");
+        cout << "   ";
+        for(int y = 0; y < ySize; y++){ // print y axis labels
+          cout << y << " ";
+        }
         Log();
 
+      } else {
         for(int x = 0; x < xSize; x++){
+          cout << x << "| ";
           for(int y = 0; y < ySize; y++){
 
             if(getAttackedOrOccupied(x, y)){
@@ -216,8 +296,35 @@ class clsUser{ //Observer
           }
           Log();
         }
+        cout << "   ";
+        for(int y = 0; y < ySize; y++){ // print y axis labels
+          cout << y << " ";
+        }
+        Log();
       }
       Log();
+    }
+
+    void viewBoard(int xSize, int ySize, int selectedX, int selectedY){
+        for(int x = 0; x < xSize; x++){
+          cout << x << "| ";
+          for(int y = 0; y < ySize; y++){
+
+            if(getAttackedOrOccupied(x, y)){
+              cout << "S ";
+            } else if(x == selectedX && y == selectedY){
+              printGreen("_ ");
+            } else {
+              cout << "_ ";
+            }
+          }
+          Log();
+        }
+        cout << "   ";
+        for(int y = 0; y < ySize; y++){ // print y axis labels
+          cout << y << " ";
+        }
+        Log();
     }
 
     void placeShips(int xSize, int ySize){
@@ -226,9 +333,10 @@ class clsUser{ //Observer
         char orient, direction;
 
         ClearConsole();
+        printPlacementTitle();
 
-        Log(getName(), " is being asked to place their ", _ships[i].getName() + " (" + to_string(_ships[i].getLength()) + ")");
-
+        Log(getName(), ", place your ", _ships[i].getName() + " (length: " + to_string(_ships[i].getLength()) + ")");
+        Log();
         viewBoard(xSize, ySize); // TODO: Prompt user to view board to prevent other users seeing it;
 
         Log("Enter X coord");
@@ -247,7 +355,7 @@ class clsUser{ //Observer
           cin >> y;
         }
 
-        while(checkIfCollision(x, y)){
+        while(checkIfCollision(x, y)){ // checks if origin point collides with another ship
           Log("Placing your" + _ships[i].getName() + " here, will cause it to collide with another ship\n");
           Log("Please enter a new X coordinate");
           cin >> x;
@@ -255,6 +363,13 @@ class clsUser{ //Observer
           Log("Please enter a new Y coordinate");
           cin >> y;
         }
+
+        ClearConsole();
+        printPlacementTitle();
+        Log(getName(), ", place your ", _ships[i].getName() + " (length: " + to_string(_ships[i].getLength()) + ")");
+        Log();
+        viewBoard(xSize, ySize, x, y);
+        Log();
 
         Log("Enter heading, up, down, left, right (u/d/l/r)"); // get user to input direction
         cin >> direction;
@@ -300,6 +415,8 @@ class clsUser{ //Observer
         _ships[i].updateBulkheads(x, y, xSize, ySize, direction);
         placeShip(_ships[i]);
         ClearConsole();
+        printPlacementTitle();
+        Log();
         viewBoard(xSize, ySize);
       }
     }
@@ -415,6 +532,7 @@ class clsGamestate{
       int playerCount;
 
       ClearConsole();
+      printConfigTitle();
 
       Log("Enter the number of players: ");
       cin >> playerCount;
@@ -437,6 +555,7 @@ class clsGamestate{
       char userChoice;
       bool isCPU = false;
       ClearConsole();
+      printPlayersTitle();
 
       for(int i = 0; i < _playerCount; i++){
         string name;
@@ -469,6 +588,7 @@ class clsGamestate{
       int x, y;
 
       ClearConsole();
+      printConfigTitle();
 
       Log("Please enter the size of the X axis for player boards");
       cin >> x;
@@ -515,9 +635,9 @@ class clsGamestate{
     void progressTurn(){
       char choice;
       
-      Log("Ready to continue? (y/n)");
+      Log("Ready to continue? (y)");
       cin >> choice;
-
+ 
       while(choice != 'y' && choice != 'n'){
         Log("Please enter 'y' or 'n'");
         cin >> choice;
@@ -543,7 +663,7 @@ class clsGamestate{
 
     void printAllUsers(){
       ClearConsole();
-      Log("Player List: ");
+      printPlayersTitle();
 
       if(_users.size()){
         for(int i = 0; i < _users.size(); i++){
@@ -552,7 +672,6 @@ class clsGamestate{
       } else {
         Log("!! No users registered !!");
       }
-
       Log();
     };
 
@@ -602,6 +721,11 @@ int main(){
   clsGamestate* state; // set variable 'Gamestate' as a pointer;
   state = clsGamestate::getInstance(); // assign the instance of clsGamestate;
   
+  ClearConsole();
+  printTitle();
+  do {
+   cout << '\n' << "Press enter to start...";
+ } while (cin.get() != '\n');
 
   clsShip carrier("Aircraft Carrier", 5);
   clsShip battleship("Battleship", 4);
