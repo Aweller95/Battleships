@@ -62,6 +62,12 @@ void Log(string message1 = "", string message2 = "", string message3 = ""){
   cout << message1 << message2 << message3 << endl;
 }
 
+void enterToContinue(){
+  do {
+  cout << '\n' << "Press enter to start...";
+  } while (cin.get() != '\n');
+}
+
 void printTitle(){  
   string line1 = "   ___         __   __   __           __    _          ";
   string line2 = "  / _ ) ___ _ / /_ / /_ / /___  ___  / /   (_)___   ___";
@@ -241,10 +247,47 @@ class clsUser{ //Observer
       }
     }
 
-    bool checkIfCollision(int x, int y){
+    bool checkIfCollision(int x, int y){ //Check if an origin coord is occupied
       for(int i = 0; i < _occupied.size(); i++){
         if(_occupied[i].x == x && _occupied[i].y == y){
           return true;
+        }
+      }
+      return false;
+    }
+
+    bool checkIfCollision(int x, int y, char direction, int length){// check all points that a ship will occupy based on direction
+      vector <udtCoord> shipPoints;
+
+      for(int i = 0; i < length; i++){ // populate shipPoints with empty coords based on ship length;
+        udtCoord tempCoord;
+        shipPoints.push_back(tempCoord);
+      }
+
+      for(int i = 0; i < length; i++){ // assign the values that the ship will occupy;
+        if(direction == 'l'){
+            shipPoints[i].x = x - i;
+            shipPoints[i].y = y;
+
+          } else if(direction == 'r'){
+            shipPoints[i].x = x + i;
+            shipPoints[i].y = y;
+            
+          } else if(direction == 'u'){
+            shipPoints[i].x = x;
+            shipPoints[i].y = y + i;
+
+          } else if(direction == 'd'){
+            shipPoints[i].x = x;
+            shipPoints[i].y = y - i;
+          }
+      }
+
+      for(int o = 0; o < _occupied.size(); o++){ //for each occupied coord
+        for(int s = 0; s < shipPoints.size(); s++){ // check each shipPoints coord if it matches
+          if(_occupied[o].x == shipPoints[s].x && _occupied[o].y == shipPoints[s].y){
+            return true;
+          }
         }
       }
       return false;
@@ -382,7 +425,7 @@ class clsUser{ //Observer
           string selected;
 
           if(direction == 'r'){ // HORIZONTAL - HEADING RIGHT
-            if(!(x + _ships[i].getLength() > xSize)){
+            if(!(x + _ships[i].getLength() >= xSize) && !checkIfCollision(x, y, direction, _ships[i].getLength())){ // check if the ship will go off of the map & if it will not intersect with another ship
               canPlace = true;
               break;
             }
@@ -390,7 +433,7 @@ class clsUser{ //Observer
           }
 
           if(direction == 'l'){ // HORIZONTAL - HEADING LEFT
-            if(!(x - _ships[i].getLength() < 0)){
+            if(!(x - _ships[i].getLength() <= 0) && !checkIfCollision(x, y, direction, _ships[i].getLength())){
               canPlace = true;
               break;
             }
@@ -398,7 +441,7 @@ class clsUser{ //Observer
           } 
 
           if(direction == 'u'){ //VERTICAL - HEADING UP
-            if(!(y + _ships[i].getLength() > ySize)){
+            if(!(y + _ships[i].getLength() >= ySize) && !checkIfCollision(x, y, direction, _ships[i].getLength())){
               canPlace = true;
               break;
             }
@@ -406,7 +449,7 @@ class clsUser{ //Observer
           }
 
           if(direction == 'd'){ //VERTICAL - HEADING DOWN
-            if(!(y - _ships[i].getLength() < 0)){
+            if(!(y - _ships[i].getLength() <= 0) && !checkIfCollision(x, y, direction, _ships[i].getLength())){
               canPlace = true;
               break;
             }
@@ -638,23 +681,11 @@ class clsGamestate{
       }
     }
 
-    void progressTurn(){
-      char choice;
-      
-      Log("Ready to continue? (y)");
-      cin >> choice;
- 
-      while(choice != 'y' && choice != 'n'){
-        Log("Please enter 'y' or 'n'");
-        cin >> choice;
-      }
-    }
-
     void updateUsers(){
       if(_stage == 1){ // if stage is 'placement' - get players to place ships;
         for(int i = 0; i < _users.size(); i++){
           _users[i].placeShips(getBoardSize().x, getBoardSize().y); // get user to place their boats;
-          progressTurn(); // wait for user to input to continue
+          enterToContinue(); // wait for user to input to continue
           ClearConsole();
         }
         _stage = 2;
@@ -698,8 +729,6 @@ class clsGamestate{
       cout << "USER NOT FOUND";
     }
 
-    
-
     void deleteAllUsers(){
       if(_users.size()){
         _users.clear();
@@ -729,9 +758,8 @@ int main(){
   
   ClearConsole();
   printTitle();
-  do {
-   cout << '\n' << "Press enter to start...";
- } while (cin.get() != '\n');
+  enterToContinue();
+
 
   clsShip carrier("Aircraft Carrier", 5);
   clsShip battleship("Battleship", 4);
