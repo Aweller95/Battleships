@@ -177,20 +177,20 @@ class clsShip{
     void updateBulkheads(int x, int y, int xSize, int ySize, char direction){
       for(int i = 0; i < _bulkheads.size(); i++){
         if(direction == 'l'){
-          _bulkheads[i].x = x;
-          _bulkheads[i].y = y - i;
-
-        } else if(direction == 'r'){
-          _bulkheads[i].x = x;
-          _bulkheads[i].y = y + i;
-          
-        } else if(direction == 'u'){
           _bulkheads[i].x = x - i;
           _bulkheads[i].y = y;
 
-        } else if(direction == 'd'){
+        } else if(direction == 'r'){
           _bulkheads[i].x = x + i;
           _bulkheads[i].y = y;
+          
+        } else if(direction == 'u'){
+          _bulkheads[i].x = x;
+          _bulkheads[i].y = y + i;
+
+        } else if(direction == 'd'){
+          _bulkheads[i].x = x;
+          _bulkheads[i].y = y - i;
         }
       }
     }
@@ -244,17 +244,14 @@ class clsUser{ //Observer
     bool checkIfCollision(int x, int y){
       for(int i = 0; i < _occupied.size(); i++){
         if(_occupied[i].x == x && _occupied[i].y == y){
-          Log("Found collision!");
           return true;
         }
       }
-      Log("No collision found");
       return false;
     }
 
     bool validateOriginCoord(int xSize, int ySize, int point){
-
-      if(point > xSize || point < 0 || point > ySize){
+      if(point > xSize || point < 1 || point > ySize){
         return false;
       }
       return true;
@@ -265,9 +262,9 @@ class clsUser{ //Observer
         Log("Targeting ", getName(), "'s board");
         Log();
         
-        for(int x = 0; x < xSize; x++){
-          cout << "| ";
-          for(int y = 0; y < ySize; y++){
+        for(int y = ySize; y > 1; y--){
+          cout << y << "| ";
+          for(int x = 1; x <= xSize; x++){
 
             if(getAttackedOrOccupied(x, y, true)){
               cout << "X ";
@@ -278,18 +275,18 @@ class clsUser{ //Observer
           Log();
         }
         cout << "   ";
-        for(int y = 0; y < ySize; y++){ // print y axis labels
-          cout << y << " ";
+        for(int x = 1; x <= xSize; x++){ // print x axis labels
+          cout << x << " ";
         }
         Log();
 
       } else {
-        for(int x = 0; x < xSize; x++){
-          cout << x << "| ";
-          for(int y = 0; y < ySize; y++){
+        for(int y = ySize; y >= 1; y--){
+          cout << y << "| ";
+          for(int x = 1; x <= xSize; x++){
 
             if(getAttackedOrOccupied(x, y)){
-              cout << "S ";
+              printOrange("S ");
             } else {
               cout << "_ ";
             }
@@ -297,8 +294,8 @@ class clsUser{ //Observer
           Log();
         }
         cout << "   ";
-        for(int y = 0; y < ySize; y++){ // print y axis labels
-          cout << y << " ";
+        for(int x = 1; x < xSize + 1; x++){ // print x axis labels
+          cout << x << " ";
         }
         Log();
       }
@@ -306,12 +303,12 @@ class clsUser{ //Observer
     }
 
     void viewBoard(int xSize, int ySize, int selectedX, int selectedY){
-        for(int x = 0; x < xSize; x++){
-          cout << x << "| ";
-          for(int y = 0; y < ySize; y++){
+        for(int y = ySize; y >= 1; y--){
+          cout << y << "| ";
+          for(int x = 1; x <= xSize; x++){
 
             if(getAttackedOrOccupied(x, y)){
-              cout << "S ";
+              printOrange("S ");
             } else if(x == selectedX && y == selectedY){
               printGreen("_ ");
             } else {
@@ -321,8 +318,8 @@ class clsUser{ //Observer
           Log();
         }
         cout << "   ";
-        for(int y = 0; y < ySize; y++){ // print y axis labels
-          cout << y << " ";
+        for(int x = 1; x <= xSize; x++){ // print x axis labels
+          cout << x << " ";
         }
         Log();
     }
@@ -385,26 +382,35 @@ class clsUser{ //Observer
           string selected;
 
           if(direction == 'r'){ // HORIZONTAL - HEADING RIGHT
-            if(!(y + _ships[i].getLength() > ySize)){
+            if(!(x + _ships[i].getLength() > xSize)){
               canPlace = true;
               break;
             }
             selected = "right";
           }
 
-          if(direction == 'l' && !(y - _ships[i].getLength() < 0)){ // HORIZONTAL - HEADING LEFT
-            canPlace = true;
-            break;
+          if(direction == 'l'){ // HORIZONTAL - HEADING LEFT
+            if(!(x - _ships[i].getLength() < 0)){
+              canPlace = true;
+              break;
+            }
+            selected = "left";
           } 
 
-          if(direction == 'u' && !(x - _ships[i].getLength() < 0)){ //VERTICAL - HEADING UP
-            canPlace = true;
-            break;
+          if(direction == 'u'){ //VERTICAL - HEADING UP
+            if(!(y + _ships[i].getLength() > ySize)){
+              canPlace = true;
+              break;
+            }
+            selected = "up";
           }
 
-          if(direction == 'd' && !(x + _ships[i].getLength() > xSize)){ //VERTICAL - HEADING DOWN
-            canPlace = true;
-            break;
+          if(direction == 'd'){ //VERTICAL - HEADING DOWN
+            if(!(y - _ships[i].getLength() < 0)){
+              canPlace = true;
+              break;
+            }
+            selected = "down";
           }
 
           Log("Your ", _ships[i].getName(), " is too long to be placed at " + to_string(x) + ", " + to_string(y) + ", heading " + selected);
@@ -412,7 +418,7 @@ class clsUser{ //Observer
           cin >> direction;
         }
 
-        _ships[i].updateBulkheads(x, y, xSize, ySize, direction);
+        _ships[i].updateBulkheads(x--, y--, xSize, ySize, direction);
         placeShip(_ships[i]);
         ClearConsole();
         printPlacementTitle();
