@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include<cmath>
 
 using namespace std;
 
@@ -68,6 +69,30 @@ void enterToContinue(){
   } while (cin.get() != '\n');
 }
 
+void printRed(string message){
+  cout << "\x1B[31m" + message + "\033[0m";
+}
+
+string setRed(string message){
+  return "\x1B[31m" + message + "\033[0m";
+}
+
+void printGreen(string message){
+  cout << "\x1B[32m" + message + "\033[0m";
+}
+
+string setGreen(string message){
+  return "\x1B[32m" + message + "\033[0m";
+}
+
+void printOrange(string message){
+  cout << "\x1B[33m" + message + "\033[0m";
+}
+
+string setOrange(string message){
+  return "\x1B[33m" + message + "\033[0m";
+}
+
 void printTitle(){  
   string line1 = "   ___         __   __   __           __    _          ";
   string line2 = "  / _ ) ___ _ / /_ / /_ / /___  ___  / /   (_)___   ___";
@@ -75,11 +100,12 @@ void printTitle(){
   string line4 = "/____/ \\_,_/ \\__/ \\__//_/ \\__//___//_//_//_// .__//___/";
   string line5 = "                                           /_/         ";   
 
-  Log(line1);
-  Log(line2);
-  Log(line3);
-  Log(line4);
-  Log(line5);
+  Log(setGreen(line1));
+  Log(setGreen(line2));
+  Log(setGreen(line3));
+  Log(setGreen(line4));
+  Log(setGreen(line5));
+  Log();
 }
 
 void printConfigTitle(){  
@@ -90,11 +116,12 @@ void printConfigTitle(){
   string line4 = "\\___/ \\___//_//_//_/ /_/ \\_, / ";
   string line5 = "                        /___/  ";
 
-  Log(line1);
-  Log(line2);
-  Log(line3);
-  Log(line4);
-  Log(line5);
+  Log(setGreen(line1));
+  Log(setGreen(line2));
+  Log(setGreen(line3));
+  Log(setGreen(line4));
+  Log(setGreen(line5));
+  Log();
 }
 
 void printPlayersTitle(){
@@ -104,35 +131,25 @@ void printPlayersTitle(){
   string line4 = "/_/   /_/ \\_,_/ \\_, / \\__//_/  /___/";
   string line5 = "               /___/                ";
 
-  Log(line1);
-  Log(line2);
-  Log(line3);
-  Log(line4);
-  Log(line5);
+  Log(setGreen(line1));
+  Log(setGreen(line2));
+  Log(setGreen(line3));
+  Log(setGreen(line4));
+  Log(setGreen(line5));
+  Log();
 }
 
 void printPlacementTitle(){
-string line1 = "   ___   __                                 __ ";
-string line2 = "  / _ \\ / /___ _ ____ ___  __ _  ___  ___  / /_";
-string line3 = " / ___// // _ `// __// -_)/  ' \\/ -_)/ _ \\/ __/";
-string line4 = "/_/   /_/ \\_,_/ \\__/ \\__//_/_/_/\\__//_//_/\\__/ ";
+  string line1 = "   ___   __                                 __ ";
+  string line2 = "  / _ \\ / /___ _ ____ ___  __ _  ___  ___  / /_";
+  string line3 = " / ___// // _ `// __// -_)/  ' \\/ -_)/ _ \\/ __/";
+  string line4 = "/_/   /_/ \\_,_/ \\__/ \\__//_/_/_/\\__//_//_/\\__/ ";
                             
-  Log(line1);
-  Log(line2);
-  Log(line3);
-  Log(line4);                   
-}
-
-void printRed(string message){
-  cout << "\x1B[31m" + message + "\033[0m";
-}
-
-void printGreen(string message){
-  cout << "\x1B[32m" + message + "\033[0m";
-}
-
-void printOrange(string message){
-  cout << "\x1B[33m" + message + "\033[0m";
+  Log(setGreen(line1));
+  Log(setGreen(line2));
+  Log(setGreen(line3));
+  Log(setGreen(line4));
+  Log();                 
 }
 
 void ClearConsole(){
@@ -300,67 +317,78 @@ class clsUser{ //Observer
       return true;
     }
 
-    void viewBoard(int xSize, int ySize, bool target = false){
+    int getIntLength(int i){
+      return trunc(log10(i)) + 1;
+      // using log10 -> returns the value y in base 10. 
+      // using trunc -> returns a rounded down result of the log10 function; 
+      //example: (log10(100) = 2) + 1 = 3 -> 100 is a 3 digit number;
+    }
+
+    void viewBoard(int xSize, int ySize, bool target = false){ // view a players board, optional param target will change if the board is drawn with occupied spaces or spaces that have been fired at;
+
       if(target){
         Log("Targeting ", getName(), "'s board");
         Log();
-        
-        for(int y = ySize; y > 1; y--){
-          cout << y << "| ";
-          for(int x = 1; x <= xSize; x++){
+      }
 
-            if(getAttackedOrOccupied(x, y, true)){
-              cout << "X ";
-            } else {
-              cout << "_ ";
-            }
+      for(int y = ySize; y >= 1; y--){
+        int yLen = getIntLength(y); // get the num of digits of current iterator y
+
+        if(yLen == 1){
+            cout << y << "  | ";
+          } else if(yLen == 2){ // if y is double digit, change spacing;
+            cout << y << " | ";
+          } else { // else print standard space;
+            cout << y << "| ";
           }
-          Log();
-        }
-        cout << "   ";
-        for(int x = 1; x <= xSize; x++){ // print x axis labels
-          cout << x << " ";
-        }
-        Log();
 
-      } else {
-        for(int y = ySize; y >= 1; y--){
-          cout << y << "| ";
-          for(int x = 1; x <= xSize; x++){
-
-            if(getAttackedOrOccupied(x, y)){
-              printOrange("S ");
+        for(int x = 1; x <= xSize; x++){
+          if(getAttackedOrOccupied(x, y, target)){
+            if(target){
+              cout << setOrange("X "); // print an X if this coord has been attacked;
             } else {
-              cout << "_ ";
+              cout << setGreen("S "); // print an S if this coord is occupied by a ship;
             }
+          } else {
+            cout << "_ ";
           }
-          Log();
-        }
-        cout << "   ";
-        for(int x = 1; x < xSize + 1; x++){ // print x axis labels
-          cout << x << " ";
         }
         Log();
       }
+
+      cout << "     ";
+      for(int x = 1; x <= xSize; x++){ // print x axis labels
+        // int xLen = getIntLength(x); // get the num of digits of current iterator x
+        cout << x << " ";
+      }
+      Log();
       Log();
     }
 
-    void viewBoard(int xSize, int ySize, int selectedX, int selectedY){
+    void viewBoard(int xSize, int ySize, int selectedX, int selectedY){ // view a players board with a point highlighted; // using function overloading here to alter the behaviour of this func;
         for(int y = ySize; y >= 1; y--){
-          cout << y << "| ";
+
+          if(getIntLength(y) == 1){
+            cout << y << "  | ";
+          } else if(getIntLength(y) == 2){ // if y is double digit, change spacing;
+            cout << y << " | ";
+          } else { // else print standard space;
+            cout << y << "| ";
+          }
+          
           for(int x = 1; x <= xSize; x++){
 
             if(getAttackedOrOccupied(x, y)){
               printOrange("S ");
             } else if(x == selectedX && y == selectedY){
-              printGreen("_ ");
+              printGreen("_ "); // prints the selected coordinate in green;
             } else {
               cout << "_ ";
             }
           }
           Log();
         }
-        cout << "   ";
+        cout << "     ";
         for(int x = 1; x <= xSize; x++){ // print x axis labels
           cout << x << " ";
         }
@@ -650,6 +678,9 @@ class clsGamestate{
 
     void startNewGame(){ // controls sequence of events for a game to be played;
       deleteAllUsers(); //reset the game by destroying all active players;
+      ClearConsole();
+      printTitle();
+      enterToContinue();
 
       initBoardSize();
       initPlayerCount();
@@ -676,7 +707,9 @@ class clsGamestate{
           ClearConsole();
           Log("Game starting...");
           _stage = 1;
-          updateUsers();
+          updateUsers(); // calling when stage == 1;
+          Log("Placement ended => STATE = 2 (Play)  calling updateUsers on line 700");
+          updateUsers(); // calling when stage == 2;
         }
       }
     }
@@ -755,10 +788,6 @@ clsGamestate* clsGamestate::_inst = NULL;
 int main(){
   clsGamestate* state; // set variable 'Gamestate' as a pointer;
   state = clsGamestate::getInstance(); // assign the instance of clsGamestate;
-  
-  ClearConsole();
-  printTitle();
-  enterToContinue();
 
 
   clsShip carrier("Aircraft Carrier", 5);
