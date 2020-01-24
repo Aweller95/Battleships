@@ -63,6 +63,15 @@ void Log(string message1 = "", string message2 = "", string message3 = ""){
   cout << message1 << message2 << message3 << endl;
 }
 
+void yToContinue(){
+  char input;
+  Log("Continue...? (y)");
+  
+  do {
+    cin >> input;
+  }while(input != 'y');
+}
+
 void enterToContinue(){
   do {
   cout << '\n' << "Press enter to start...";
@@ -150,6 +159,21 @@ void printPlacementTitle(){
   Log(setGreen(line3));
   Log(setGreen(line4));
   Log();                 
+}
+
+void printSelectTargetTitle(){
+  string line1 = "   ____      __           __    ______                       __  ";
+  string line2 = "  / __/___  / /___  ____ / /_  /_  __/___ _ ____ ___ _ ___  / /_ ";
+  string line3 = " _\\ \\ / -_)/ // -_)/ __// __/   / /  / _ `// __// _ `// -_)/ __/ ";
+  string line4 = "/___/ \\__//_/ \\__/ \\__/ \\__/   /_/   \\_,_//_/   \\_, / \\__/ \\__/  ";
+  string line5 = "                                               /___/             ";
+  
+  Log(setGreen(line1));
+  Log(setGreen(line2));
+  Log(setGreen(line3));
+  Log(setGreen(line4));
+  Log(setGreen(line5));
+  Log();  
 }
 
 void ClearConsole(){
@@ -264,12 +288,20 @@ class clsUser{ //Observer
       }
     }
 
-    bool checkIfCollision(int x, int y){ //Check if an origin coord is occupied
+    bool checkIfCollision(int x, int y, bool target = false){ //Check if an origin coord is occupied
+    if(target){
+      for(int i = 0; i < _attacked.size(); i++){
+        if(_attacked[i].x == x && _attacked[i].y == y){
+          return true;
+        }
+      } 
+    } else {
       for(int i = 0; i < _occupied.size(); i++){
         if(_occupied[i].x == x && _occupied[i].y == y){
           return true;
         }
-      }
+      } 
+    }
       return false;
     }
 
@@ -321,10 +353,10 @@ class clsUser{ //Observer
       return trunc(log10(i)) + 1;
       // using log10 -> returns the value y in base 10. 
       // using trunc -> returns a rounded down result of the log10 function; 
-      //example: (log10(100) = 2) + 1 = 3 -> 100 is a 3 digit number;
+      // example: (log10(100) = 2) + 1 = 3 -> 100 is a 3 digit number;
     }
 
-    void viewBoard(int xSize, int ySize, bool target = false){ // view a players board, optional param target will change if the board is drawn with occupied spaces or spaces that have been fired at;
+    void viewBoard(int xSize, int ySize, bool target = false){ // view a players board, optional param 'target' will change if the board is drawn with occupied spaces or spaces that have been fired at;
 
       if(target){
         Log("Targeting ", getName(), "'s board");
@@ -344,6 +376,7 @@ class clsUser{ //Observer
 
         for(int x = 1; x <= xSize; x++){
           if(getAttackedOrOccupied(x, y, target)){
+            // Log("result of: getAttackedOrOccupied(x, y, target)", to_string(getAttackedOrOccupied(x, y, target))); // DEBUGGING
             if(target){
               cout << setOrange("X "); // print an X if this coord has been attacked;
             } else {
@@ -379,7 +412,7 @@ class clsUser{ //Observer
           for(int x = 1; x <= xSize; x++){
 
             if(getAttackedOrOccupied(x, y)){
-              printOrange("S ");
+              printGreen("S ");
             } else if(x == selectedX && y == selectedY){
               printGreen("_ "); // prints the selected coordinate in green;
             } else {
@@ -395,7 +428,7 @@ class clsUser{ //Observer
         Log();
     }
 
-    void placeShips(int xSize, int ySize){
+    void placeFleet(int xSize, int ySize){
       for(int i = 0; i < _ships.size(); i++){
         int x, y;
         char orient, direction;
@@ -453,7 +486,7 @@ class clsUser{ //Observer
           string selected;
 
           if(direction == 'r'){ // HORIZONTAL - HEADING RIGHT
-            if(!(x + _ships[i].getLength() >= xSize) && !checkIfCollision(x, y, direction, _ships[i].getLength())){ // check if the ship will go off of the map & if it will not intersect with another ship
+            if(!(x + _ships[i].getLength() - 1 > xSize) && !checkIfCollision(x, y, direction, _ships[i].getLength())){ // check if the ship will go off of the map & if it will not intersect with another ship
               canPlace = true;
               break;
             }
@@ -461,7 +494,7 @@ class clsUser{ //Observer
           }
 
           if(direction == 'l'){ // HORIZONTAL - HEADING LEFT
-            if(!(x - _ships[i].getLength() <= 0) && !checkIfCollision(x, y, direction, _ships[i].getLength())){
+            if(!(x - _ships[i].getLength() < 0) && !checkIfCollision(x, y, direction, _ships[i].getLength())){
               canPlace = true;
               break;
             }
@@ -469,7 +502,7 @@ class clsUser{ //Observer
           } 
 
           if(direction == 'u'){ //VERTICAL - HEADING UP
-            if(!(y + _ships[i].getLength() >= ySize) && !checkIfCollision(x, y, direction, _ships[i].getLength())){
+            if(!(y + _ships[i].getLength() - 1 > ySize) && !checkIfCollision(x, y, direction, _ships[i].getLength())){
               canPlace = true;
               break;
             }
@@ -477,7 +510,7 @@ class clsUser{ //Observer
           }
 
           if(direction == 'd'){ //VERTICAL - HEADING DOWN
-            if(!(y - _ships[i].getLength() <= 0) && !checkIfCollision(x, y, direction, _ships[i].getLength())){
+            if(!(y - _ships[i].getLength() < 0) && !checkIfCollision(x, y, direction, _ships[i].getLength())){
               canPlace = true;
               break;
             }
@@ -495,6 +528,7 @@ class clsUser{ //Observer
         printPlacementTitle();
         Log();
         viewBoard(xSize, ySize);
+
       }
     }
     
@@ -708,7 +742,6 @@ class clsGamestate{
           Log("Game starting...");
           _stage = 1;
           updateUsers(); // calling when stage == 1;
-          Log("Placement ended => STATE = 2 (Play)  calling updateUsers on line 700");
           updateUsers(); // calling when stage == 2;
         }
       }
@@ -717,31 +750,77 @@ class clsGamestate{
     void updateUsers(){
       if(_stage == 1){ // if stage is 'placement' - get players to place ships;
         for(int i = 0; i < _users.size(); i++){
-          _users[i].placeShips(getBoardSize().x, getBoardSize().y); // get user to place their boats;
-          enterToContinue(); // wait for user to input to continue
-          ClearConsole();
+          char input; // DELETE THIS
+          _users[i].placeFleet(getBoardSize().x, getBoardSize().y); // get user to place their boats;
+
+          yToContinue();
         }
         _stage = 2;
       } else if(_stage == 2){ // if stage is 'play' - cycle through users to choose target & attack;
-        //If _playerCount > 1;
-        //promptForTarget(_activePlayer); 
+
+        for(int i = 0; i < _users.size(); i++){
+          int targetId;
+
+          Log("It is ", _users[i].getName(), "'s turn...");
+          yToContinue(); // wait for user to input to continue
+          printAllUsers(_users[i].getId());
+
+          Log(_users[i].getName(), ", enter the ID of the player you want to attack: ");
+          cin >> targetId; // needs validation;
+          ClearConsole();
+
+          getUserById(targetId).viewBoard(getBoardSize().x, getBoardSize().y, true); // view targets board;
+          selectTargetCoords(getUserById(targetId)); // get user to select attack coords;
+          getUserById(targetId).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
+          yToContinue();
+        }
       } else if(_stage == 3){ // if stage is 'winner' - display winner screen to remaining player(s);
         //display winner screen;
         //ask if they want to play again;
       }
     }
 
+    void selectTargetCoords(clsUser targetUser){
+      int x, y;
+
+      Log("Enter the X coordinate that you want to attack"); // convert to "do while"
+      cin >> x;
+
+      Log("Enter the Y coordinate that you want to attack");
+      cin >> y;
+
+      while(targetUser.checkIfCollision(x, y, true)){
+        Log("This coordinate has already been attacked, please enter new coordinates");
+
+        Log("Enter the X coordinate that you want to attack");
+        cin >> x;
+
+        Log("Enter the Y coordinate that you want to attack");
+        cin >> y;
+      }
+      
+      targetUser.addAttacked(x, y);
+    }
+
     void printAllUsers(){
       ClearConsole();
       printPlayersTitle();
 
-      if(_users.size()){
-        for(int i = 0; i < _users.size(); i++){
+      for(int i = 0; i < _users.size(); i++){
+        Log(to_string(_users[i].getId()), "." , _users[i].getName());
+      }    
+      Log();
+    };
+
+    void printAllUsers(int callerId){
+      ClearConsole();
+      printSelectTargetTitle();
+
+      for(int i = 0; i < _users.size(); i++){
+        if(_users[i].getId() != callerId){
           Log(to_string(_users[i].getId()), "." , _users[i].getName());
         }
-      } else {
-        Log("!! No users registered !!");
-      }
+      }    
       Log();
     };
 
