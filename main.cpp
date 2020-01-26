@@ -176,13 +176,26 @@ void printSelectTargetTitle(){
   Log();  
 }
 
+void printBattleTitle(){
+  string line1 = "   ___         __   __   __    ";
+  string line2 = "  / _ ) ___ _ / /_ / /_ / /___ ";
+  string line3 = " / _  |/ _ `// __// __// // -_)";
+  string line4 = "/____/ \\_,_/ \\__/ \\__//_/ \\__/ ";
+                               
+  Log(setGreen(line1));
+  Log(setGreen(line2));
+  Log(setGreen(line3));
+  Log(setGreen(line4));
+  Log();  
+}
+
 void ClearConsole(){
   cout << "\033[2J\033[0;0H"; // escape sequence that clears the console;
 }
 
 string cleanString(string text){
   string _local = text;
-  cout << endl << "BEFORE: [" <<_local << "]\n";
+  cout << endl << "BEFORE: [" <<_local << "]\n";//TODO: remove this
 
   for(int i = 0; i < _local.length(); i++){
     if(_local[i] == ' ' && _local[i+1] != ' '){//if singlespace;
@@ -200,7 +213,7 @@ string cleanString(string text){
     _local.erase(_local.size(), 1);
   }
 
-  cout << "AFTER : [" <<_local << "]";
+  cout << "AFTER : [" <<_local << "]"; // TODO: Remove this
 
   return _local;
 };
@@ -288,7 +301,7 @@ class clsUser{ //Observer
       }
     }
 
-    bool checkIfCollision(int x, int y, bool target = false){ //Check if an origin coord is occupied
+    bool checkCollision(int x, int y, bool target = false){ //Check if an origin coord is occupied
     if(target){
       for(int i = 0; i < _attacked.size(); i++){
         if(_attacked[i].x == x && _attacked[i].y == y){
@@ -305,7 +318,7 @@ class clsUser{ //Observer
       return false;
     }
 
-    bool checkIfCollision(int x, int y, char direction, int length){// check all points that a ship will occupy based on direction
+    bool checkCollision(int x, int y, char direction, int length){// check all points that a ship will occupy based on direction
       vector <udtCoord> shipPoints;
 
       for(int i = 0; i < length; i++){ // populate shipPoints with empty coords based on ship length;
@@ -332,14 +345,14 @@ class clsUser{ //Observer
           }
       }
 
-      for(int o = 0; o < _occupied.size(); o++){ //for each occupied coord
-        for(int s = 0; s < shipPoints.size(); s++){ // check each shipPoints coord if it matches
+      for(int o = 0; o < _occupied.size(); o++){ //for each coordinate that is already occupied...
+        for(int s = 0; s < shipPoints.size(); s++){ // check each 'shipPoints' coord if it matches
           if(_occupied[o].x == shipPoints[s].x && _occupied[o].y == shipPoints[s].y){
-            return true;
+            return true; // if a match is found, return true
           }
         }
       }
-      return false;
+      return false; //otherwise return false;
     }
 
     bool validateOriginCoord(int xSize, int ySize, int point){
@@ -357,7 +370,6 @@ class clsUser{ //Observer
     }
 
     void viewBoard(int xSize, int ySize, bool target = false){ // view a players board, optional param 'target' will change if the board is drawn with occupied spaces or spaces that have been fired at;
-
       if(target){
         Log("Targeting ", getName(), "'s board");
         Log();
@@ -366,19 +378,21 @@ class clsUser{ //Observer
       for(int y = ySize; y >= 1; y--){
         int yLen = getIntLength(y); // get the num of digits of current iterator y
 
-        if(yLen == 1){
+        if(yLen == 1){ // if y is a single digit, use this spacing
             cout << y << "  | ";
           } else if(yLen == 2){ // if y is double digit, change spacing;
             cout << y << " | ";
           } else { // else print standard space;
             cout << y << "| ";
           }
-
         for(int x = 1; x <= xSize; x++){
-          if(getAttackedOrOccupied(x, y, target)){
-            // Log("result of: getAttackedOrOccupied(x, y, target)", to_string(getAttackedOrOccupied(x, y, target))); // DEBUGGING
-            if(target){
-              cout << setOrange("X "); // print an X if this coord has been attacked;
+          if(getAttackedOrOccupied(x, y, target)){ //if the current coord matches an already occupied or attacked coord (based on the var 'target')
+            if(target){ //if target is true...
+              if(checkCollision(x, y)){//...and this point contains a ship 
+                cout << setRed("X ");// print an orange X if this coord has been attacked and is a hit;
+              } else {
+                cout << setOrange("X "); // print an orange X if this coord has been attacked but is a miss;
+              }
             } else {
               cout << setGreen("S "); // print an S if this coord is occupied by a ship;
             }
@@ -388,7 +402,6 @@ class clsUser{ //Observer
         }
         Log();
       }
-
       cout << "     ";
       for(int x = 1; x <= xSize; x++){ // print x axis labels
         // int xLen = getIntLength(x); // get the num of digits of current iterator x
@@ -398,9 +411,8 @@ class clsUser{ //Observer
       Log();
     }
 
-    void viewBoard(int xSize, int ySize, int selectedX, int selectedY){ // view a players board with a point highlighted; // using function overloading here to alter the behaviour of this func;
+    void viewBoard(int xSize, int ySize, int selectedX, int selectedY){ // view a players board with a point highlighted; using function overloading here to alter the behaviour of this func;
         for(int y = ySize; y >= 1; y--){
-
           if(getIntLength(y) == 1){
             cout << y << "  | ";
           } else if(getIntLength(y) == 2){ // if y is double digit, change spacing;
@@ -410,7 +422,6 @@ class clsUser{ //Observer
           }
           
           for(int x = 1; x <= xSize; x++){
-
             if(getAttackedOrOccupied(x, y)){
               printGreen("S ");
             } else if(x == selectedX && y == selectedY){
@@ -423,7 +434,7 @@ class clsUser{ //Observer
         }
         cout << "     ";
         for(int x = 1; x <= xSize; x++){ // print x axis labels
-          cout << x << " ";
+          cout << x << " "; // TODO: fix spacing if xSize exceeds 10;
         }
         Log();
     }
@@ -432,6 +443,7 @@ class clsUser{ //Observer
       for(int i = 0; i < _ships.size(); i++){
         int x, y;
         char orient, direction;
+        bool canPlace = false;
 
         ClearConsole();
         printPlacementTitle();
@@ -456,7 +468,7 @@ class clsUser{ //Observer
           cin >> y;
         }
 
-        while(checkIfCollision(x, y)){ // checks if origin point collides with another ship
+        while(checkCollision(x, y)){ // checks if origin point collides with another ship
           Log("Placing your" + _ships[i].getName() + " here, will cause it to collide with another ship\n");
           Log("Please enter a new X coordinate");
           cin >> x;
@@ -480,21 +492,19 @@ class clsUser{ //Observer
           cin >> direction;
         }
 
-        bool canPlace = false;
-
         while(!canPlace){
           string selected;
 
           if(direction == 'r'){ // HORIZONTAL - HEADING RIGHT
-            if(!(x + _ships[i].getLength() - 1 > xSize) && !checkIfCollision(x, y, direction, _ships[i].getLength())){ // check if the ship will go off of the map & if it will not intersect with another ship
+            if(!(x + _ships[i].getLength() - 1 > xSize) && !checkCollision(x, y, direction, _ships[i].getLength())){ // check if the ship will go off of the map & if it will intersect with another ship
               canPlace = true;
-              break;
+              break; // using break here to prevent unnecesary error logging after successful placement;
             }
             selected = "right";
           }
 
           if(direction == 'l'){ // HORIZONTAL - HEADING LEFT
-            if(!(x - _ships[i].getLength() < 0) && !checkIfCollision(x, y, direction, _ships[i].getLength())){
+            if(!(x - _ships[i].getLength() < 0) && !checkCollision(x, y, direction, _ships[i].getLength())){
               canPlace = true;
               break;
             }
@@ -502,7 +512,7 @@ class clsUser{ //Observer
           } 
 
           if(direction == 'u'){ //VERTICAL - HEADING UP
-            if(!(y + _ships[i].getLength() - 1 > ySize) && !checkIfCollision(x, y, direction, _ships[i].getLength())){
+            if(!(y + _ships[i].getLength() - 1 > ySize) && !checkCollision(x, y, direction, _ships[i].getLength())){
               canPlace = true;
               break;
             }
@@ -510,7 +520,7 @@ class clsUser{ //Observer
           }
 
           if(direction == 'd'){ //VERTICAL - HEADING DOWN
-            if(!(y - _ships[i].getLength() < 0) && !checkIfCollision(x, y, direction, _ships[i].getLength())){
+            if(!(y - _ships[i].getLength() < 0) && !checkCollision(x, y, direction, _ships[i].getLength())){
               canPlace = true;
               break;
             }
@@ -522,13 +532,12 @@ class clsUser{ //Observer
           cin >> direction;
         }
 
-        _ships[i].updateBulkheads(x--, y--, xSize, ySize, direction);
-        placeShip(_ships[i]);
+        _ships[i].updateBulkheads(x--, y--, xSize, ySize, direction); //update the currently selected ships bulkheads, with adjusted coords as the board is base 0;
+        placeShip(_ships[i]); //Add the selected ships coords to the _occupied variable;
         ClearConsole();
         printPlacementTitle();
         Log();
-        viewBoard(xSize, ySize);
-
+        viewBoard(xSize, ySize);//View the board after placement for visual confirmation;
       }
     }
     
@@ -609,9 +618,9 @@ class clsUser{ //Observer
     vector < clsShip > _ships;
     bool _ready = false;
     bool _cpu = false;
-}; // Maybe a class for CPU players inheirits clsUser & includes the AI in that inheirited class?
+}; // TODO: Maybe a class for CPU players inheirits clsUser & includes the AI in that inheirited class?
 
-//GAMESTATE CLASS - Combined Singleton + State Machine Design Patterns
+//GAMESTATE CLASS - Combined Singleton, State Machine & observer Design Patterns
 class clsGamestate{
   public:
     //used to allow clients to access the instance of Gamestate;
@@ -639,7 +648,7 @@ class clsGamestate{
       return _boardSize;
     }
 
-    void initPlayerCount(bool ai = false){
+    void initPlayerCount(){
       int playerCount;
 
       ClearConsole();
@@ -750,29 +759,37 @@ class clsGamestate{
     void updateUsers(){
       if(_stage == 1){ // if stage is 'placement' - get players to place ships;
         for(int i = 0; i < _users.size(); i++){
-          char input; // DELETE THIS
+          char input; // DELETE THIS?
           _users[i].placeFleet(getBoardSize().x, getBoardSize().y); // get user to place their boats;
 
           yToContinue();
         }
         _stage = 2;
       } else if(_stage == 2){ // if stage is 'play' - cycle through users to choose target & attack;
+        while(_users.size() > 1){ // while there is more than 1 active player
+          for(int i = 0; i < _users.size(); i++){ // ask each active player to attack
+            int targetId;
 
-        for(int i = 0; i < _users.size(); i++){
-          int targetId;
+            ClearConsole();
+            printBattleTitle();
+            Log("It is ", _users[i].getName(), "'s turn...");
+            yToContinue(); // wait for user to input to continue
+            printAllUsers(_users[i].getId());
 
-          Log("It is ", _users[i].getName(), "'s turn...");
-          yToContinue(); // wait for user to input to continue
-          printAllUsers(_users[i].getId());
+            Log(_users[i].getName(), ", enter the ID of the player you want to attack: ");
+            cin >> targetId; // TODO: needs validation;
 
-          Log(_users[i].getName(), ", enter the ID of the player you want to attack: ");
-          cin >> targetId; // needs validation;
-          ClearConsole();
+            ClearConsole();
+            printBattleTitle();
 
-          getUserById(targetId).viewBoard(getBoardSize().x, getBoardSize().y, true); // view targets board;
-          selectTargetCoords(getUserById(targetId)); // get user to select attack coords;
-          getUserById(targetId).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
-          yToContinue();
+            getUserById(targetId).viewBoard(getBoardSize().x, getBoardSize().y, true); // view targets board;
+            udtCoord validatedAttackCoord = selectTargetCoords(getUserById(targetId)); // get user to select attack coords;
+
+            getUserById(targetId).addAttacked(validatedAttackCoord.x, validatedAttackCoord.y); // add the validated attack coordinate to the targets board;
+
+            getUserById(targetId).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
+            yToContinue();
+          }
         }
       } else if(_stage == 3){ // if stage is 'winner' - display winner screen to remaining player(s);
         //display winner screen;
@@ -780,26 +797,25 @@ class clsGamestate{
       }
     }
 
-    void selectTargetCoords(clsUser targetUser){
-      int x, y;
+    udtCoord selectTargetCoords(clsUser targetUser){
+      udtCoord attackCoord;
 
       Log("Enter the X coordinate that you want to attack"); // convert to "do while"
-      cin >> x;
+      cin >> attackCoord.x;
 
       Log("Enter the Y coordinate that you want to attack");
-      cin >> y;
+      cin >> attackCoord.y;
 
-      while(targetUser.checkIfCollision(x, y, true)){
+      while(targetUser.checkCollision(attackCoord.x, attackCoord.y, true)){
         Log("This coordinate has already been attacked, please enter new coordinates");
 
         Log("Enter the X coordinate that you want to attack");
-        cin >> x;
+        cin >> attackCoord.x;
 
         Log("Enter the Y coordinate that you want to attack");
-        cin >> y;
+        cin >> attackCoord.y;
       }
-      
-      targetUser.addAttacked(x, y);
+      return attackCoord;
     }
 
     void printAllUsers(){
@@ -870,16 +886,16 @@ int main(){
 
 
   clsShip carrier("Aircraft Carrier", 5);
-  clsShip battleship("Battleship", 4);
-  clsShip submarine("Submarine", 3);
-  clsShip cruiser("Cruiser", 3);
-  clsShip patrolBoat("Patrol Boat", 2);
+  // clsShip battleship("Battleship", 4);
+  // clsShip submarine("Submarine", 3);
+  // clsShip cruiser("Cruiser", 3);
+  // clsShip patrolBoat("Patrol Boat", 2);
 
   state -> registerShip(carrier); 
-  state -> registerShip(battleship); 
-  state -> registerShip(submarine); 
-  state -> registerShip(cruiser); 
-  state -> registerShip(patrolBoat); 
+  // state -> registerShip(battleship); 
+  // state -> registerShip(submarine); 
+  // state -> registerShip(cruiser); 
+  // state -> registerShip(patrolBoat); 
 
   state -> startNewGame();
 }
