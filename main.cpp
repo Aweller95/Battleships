@@ -610,13 +610,21 @@ class clsUser{ //Observer
       Log(getName(), " isCPU -> ", to_string(_cpu));
     }
 
+    void setInactive(){
+      _active = false;
+    }
+
+    bool isActive(){
+      return _active;
+    }
+
   private:
     int _id;
     string _name;
     vector < udtCoord > _occupied; // represents a players personal board;
     vector < udtCoord > _attacked; // represents where users have fired at this users board;
     vector < clsShip > _ships;
-    bool _ready = false;
+    bool _active = true;
     bool _cpu = false;
 }; // TODO: Maybe a class for CPU players inheirits clsUser & includes the AI in that inheirited class?
 
@@ -756,39 +764,62 @@ class clsGamestate{
       }
     }
 
+    int getActivePlayers(int id){
+      int count = 0;
+
+      for(int i = 0; i < _users.size(); i++){
+        if(_users[i].isActive()){
+          count++;
+        }
+      }
+      return count;
+    }
+
     void updateUsers(){
       if(_stage == 1){ // if stage is 'placement' - get players to place ships;
         for(int i = 0; i < _users.size(); i++){
           char input; // DELETE THIS?
           _users[i].placeFleet(getBoardSize().x, getBoardSize().y); // get user to place their boats;
-
           yToContinue();
         }
         _stage = 2;
       } else if(_stage == 2){ // if stage is 'play' - cycle through users to choose target & attack;
         while(_users.size() > 1){ // while there is more than 1 active player
-          for(int i = 0; i < _users.size(); i++){ // ask each active player to attack
-            int targetId;
+          for(int i = 0; i < _users.size(); i++){
+            if(_users[i].isActive()){ // ask each active player to attack
+              pair <bool, int> foundUser;
+              int targetId = 0;
 
-            ClearConsole();
-            printBattleTitle();
-            Log("It is ", _users[i].getName(), "'s turn...");
-            yToContinue(); // wait for user to input to continue
-            printAllUsers(_users[i].getId());
+              ClearConsole();
+              printBattleTitle();
+              Log("It is ", _users[i].getName(), "'s turn...");
+              yToContinue(); // wait for user to input to continue
+              printAllUsers(_users[i].getId());
 
-            Log(_users[i].getName(), ", enter the ID of the player you want to attack: ");
-            cin >> targetId; // TODO: needs validation;
+              do {
+                if(targetId){//if target Id has a value, display the error message;
+                  Log();
+                  Log("Please enter a valid userId");
+                  Log();
+                }
 
-            ClearConsole();
-            printBattleTitle();
+                Log(_users[i].getName(), ", enter the ID of the player you want to attack: ");
+                cin >> targetId;
+                foundUser = checkUserExistsById(targetId);
 
-            getUserById(targetId).viewBoard(getBoardSize().x, getBoardSize().y, true); // view targets board;
-            udtCoord validatedAttackCoord = selectTargetCoords(getUserById(targetId)); // get user to select attack coords;
+              } while(!foundUser.first || _users[i].getId() == targetId); // ask for a target id while the id is invalid or the id is of the current player;
 
-            getUserById(targetId).addAttacked(validatedAttackCoord.x, validatedAttackCoord.y); // add the validated attack coordinate to the targets board;
+              ClearConsole();
+              printBattleTitle();
 
-            getUserById(targetId).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
-            yToContinue();
+              getUserById(foundUser.second).viewBoard(getBoardSize().x, getBoardSize().y, true); // view targets board;
+              udtCoord validatedAttackCoord = selectTargetCoords(getUserById(foundUser.second)); // get user to select attack coords;
+
+              getUserById(foundUser.second).addAttacked(validatedAttackCoord.x, validatedAttackCoord.y); // add the validated attack coordinate to the targets board;
+
+              getUserById(foundUser.second).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
+              yToContinue();
+            }
           }
         }
       } else if(_stage == 3){ // if stage is 'winner' - display winner screen to remaining player(s);
@@ -818,7 +849,7 @@ class clsGamestate{
       return attackCoord;
     }
 
-    void printAllUsers(){
+    void printAllUsers(){ // print all registered users;
       ClearConsole();
       printPlayersTitle();
 
@@ -828,7 +859,7 @@ class clsGamestate{
       Log();
     };
 
-    void printAllUsers(int callerId){
+    void printAllUsers(int callerId){ //print all users excluding the user that matches the passes id;
       ClearConsole();
       printSelectTargetTitle();
 
@@ -840,21 +871,30 @@ class clsGamestate{
       Log();
     };
 
-    void registerUser(clsUser& user){
+    void registerUser(clsUser& user){ // register a user to the gamestate by adding it to the _users vector;
       _users.push_back(user);
     }
 
-    vector < clsUser > getUsers(){
-      return _users;
-    }
+    // vector < clsUser > getUsers(){ NOT USED
+    //   return _users;
+    // }
 
-    clsUser& getUserById(int id){
+    pair<bool, int> checkUserExistsById(int id){
+      pair <bool, int> result;
+      result.first = false;
+      result.second = -1;
+
       for(int i = 0; i < _users.size(); i++){
         if(_users[i].getId() == id){
-          return _users[i];
+          result.first = true; // if user is found
+          result.second = i; // record the index the user was found at;
         }
       }
-      cout << "USER NOT FOUND";
+      return result;
+    }
+
+    clsUser& getUserById(int index){
+      return _users[index];
     }
 
     void deleteAllUsers(){
@@ -863,8 +903,17 @@ class clsGamestate{
       }
     }
 
-    void registerShip(clsShip ship){
+    void registerShip(clsShip ship){ // registers a ship class to the gamestate to configure new user fleets;
       _fleetConfig.push_back(ship);
+    }
+
+    void removeUserById(int id){
+      for(int i = 0; i < _users.size(); i++){
+        if(_users[i].getId() == id){
+          Log("Setting ", _users[i].getName(), " as inactive");
+          _users[i].setInactive();
+        }
+      }
     }
 
   private:
