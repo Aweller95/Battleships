@@ -27,8 +27,6 @@ class clsUser;
 class clsGamestate;
 
 const int NOVALUE = -1;
-const int VERT = 1;
-const int HORZ = 2;
 
 struct bulkhead{
   int x = NOVALUE;
@@ -40,6 +38,8 @@ struct udtCoord{
   int x;
   int y;
 };
+
+vector <string> roundEvents;
 
 //UTILITIES CLASS
 /* 
@@ -61,6 +61,22 @@ I am using a naming scheme for helper functions to start with capital letters. T
 
 void Log(string message1 = "", string message2 = "", string message3 = ""){
   cout << message1 << message2 << message3 << endl;
+}
+
+int getIntLength(int i){ // TODO: can go in utils class
+      return trunc(log10(i)) + 1;
+      // using log10 -> returns the value y in base 10. 
+      // using trunc -> returns a rounded down result of the log10 function; 
+      // example: (log10(100) = 2) + 1 = 3 -> 100 is a 3 digit number;
+    }
+
+void printRoundEvents(){
+  Log("Round History");
+  Log("________________________________");
+  for(int i = 0; i < roundEvents.size(); i++){
+    cout << to_string(i+1) + ". " << roundEvents[i] << "\n";
+  }
+  Log("________________________________");
 }
 
 void yToContinue(){
@@ -100,6 +116,10 @@ void printOrange(string message){
 
 string setOrange(string message){
   return "\x1B[33m" + message + "\033[0m";
+}
+
+string setYellow(string message){
+  return "\x1B[93m" + message + "\033[0m";
 }
 
 void printTitle(){  
@@ -189,6 +209,20 @@ void printBattleTitle(){
   Log();  
 }
 
+void printRoundOverTitle(){
+string line1 = "   ___                      __  ____                 ";
+string line2 = "  / _ \\ ___  __ __ ___  ___/ / / __ \\ _  __ ___  ____";
+string line3 = " / , _// _ \\/ // // _ \\/ _  / / /_/ /| |/ // -_)/ __/";
+string line4 = "/_/|_| \\___/\\_,_//_//_/\\_,_/  \\____/ |___/ \\__//_/   ";
+                                                     
+
+  Log(setGreen(line1));
+  Log(setGreen(line2));
+  Log(setGreen(line3));
+  Log(setGreen(line4));
+  Log(); 
+}
+
 void ClearConsole(){
   cout << "\033[2J\033[0;0H"; // escape sequence that clears the console;
 }
@@ -224,6 +258,7 @@ class clsShip{
     clsShip(string name, int length){
       _name = name;
       _length = length;
+      _health = length;
       buildBulkheads();
     }
 
@@ -234,7 +269,7 @@ class clsShip{
       }
     }
 
-    void updateBulkheads(int x, int y, int xSize, int ySize, char direction){
+    void updateBulkheads(int x, int y, int xSize, int ySize, char direction){ // update all bulkheads of a ship to be places on the gameboard;
       for(int i = 0; i < _bulkheads.size(); i++){
         if(direction == 'l'){
           _bulkheads[i].x = x - i;
@@ -255,6 +290,14 @@ class clsShip{
       }
     }
 
+    int getHealth(){
+      return _health;
+    }
+
+    void decrementHealth(){
+      _health--;
+    }
+
     vector <bulkhead> getBulkheads(){
       return _bulkheads;
     }
@@ -267,8 +310,19 @@ class clsShip{
       return _length;
     }
 
+    void setAnnounced(){
+      _announced = true;
+    }
+
+    bool getAnnounced(){
+      return _announced;
+    }
+
   private:
     int _length;
+    int _health;
+    bool _announced = false;
+    bool _destroyed = false;
     string _name;
     vector < bulkhead > _bulkheads;
 };
@@ -302,6 +356,8 @@ class clsUser{ //Observer
     }
 
     bool checkCollision(int x, int y, bool target = false){ //Check if an origin coord is occupied
+    //add validation - can currently place coords outside of map
+    //validateOriginCoord(); requires boardsize
     if(target){
       for(int i = 0; i < _attacked.size(); i++){
         if(_attacked[i].x == x && _attacked[i].y == y){
@@ -362,16 +418,12 @@ class clsUser{ //Observer
       return true;
     }
 
-    int getIntLength(int i){
-      return trunc(log10(i)) + 1;
-      // using log10 -> returns the value y in base 10. 
-      // using trunc -> returns a rounded down result of the log10 function; 
-      // example: (log10(100) = 2) + 1 = 3 -> 100 is a 3 digit number;
-    }
-
     void viewBoard(int xSize, int ySize, bool target = false){ // view a players board, optional param 'target' will change if the board is drawn with occupied spaces or spaces that have been fired at;
       if(target){
         Log("Targeting ", getName(), "'s board");
+        Log();
+      } else {
+        Log("Your (", getName(), "'s) board");
         Log();
       }
 
@@ -386,13 +438,15 @@ class clsUser{ //Observer
             cout << y << "| ";
           }
         for(int x = 1; x <= xSize; x++){
-          if(getAttackedOrOccupied(x, y, target)){ //if the current coord matches an already occupied or attacked coord (based on the var 'target')
+          if(getAttackedOrOccupied(x, y, target)){ //if the current coord matches an already occupied or attacked coord (based on the param 'target')
             if(target){ //if target is true...
               if(checkCollision(x, y)){//...and this point contains a ship 
                 cout << setRed("X ");// print an orange X if this coord has been attacked and is a hit;
               } else {
-                cout << setOrange("X "); // print an orange X if this coord has been attacked but is a miss;
+                cout << setYellow("x "); // print a yellow x if this coord has been attacked but is a miss;
               }
+            } else if (checkCollision(x, y, true)){
+              cout << setRed("X "); // print an S if this coord is occupied by a ship;
             } else {
               cout << setGreen("S "); // print an S if this coord is occupied by a ship;
             }
@@ -536,6 +590,7 @@ class clsUser{ //Observer
         placeShip(_ships[i]); //Add the selected ships coords to the _occupied variable;
         ClearConsole();
         printPlacementTitle();
+        Log("Placement complete...");
         Log();
         viewBoard(xSize, ySize);//View the board after placement for visual confirmation;
       }
@@ -558,14 +613,34 @@ class clsUser{ //Observer
       return _attacked;
     }
 
+    string updateShips(int x, int y){ // TODO: this should not do 2 things at once;
+      for(int i = 0; i < _ships.size(); i++){ // for each registered ship
+        for(int j = 0; j < _ships[i].getBulkheads().size(); j++){ //for each bulkhead
+          if(x == _ships[i].getBulkheads()[j].x && y == _ships[i].getBulkheads()[j].y){ // if the passed in coords match a bulkhead
+            _ships[i].getBulkheads()[j].hit = true;
+            _ships[i].decrementHealth();
+          }
+        }
+
+        if(_ships[i].getHealth() == 0 && !_ships[i].getAnnounced()){ //if any of the updated ships have been destroyed & they have not been announced;
+          _ships[i].setAnnounced();
+          return getName() + "'s " + _ships[i].getName() + " has been destroyed!";
+        } else {
+          return getName() + " was attacked at: " + to_string(x) + ", " + to_string(y);
+        }
+      }
+      return "END OF FUNC";// TODO: change this;
+    }
+
     void addAttacked(int x, int y){
       udtCoord coordinate;
-      Log(getName(), " was attacked at: ", to_string(x) + ", " + to_string(y));
-      Log();
 
-      coordinate.x = x;
+      //iterate over ships - check for matching coords - set 'hit' to true;
+      roundEvents.push_back(updateShips(x, y)); // TODO:  Might not work; -> abstract adding to event queue; - updateShips() should be void;
+
+      coordinate.x = x; // assign the param values to a coordinate
       coordinate.y = y;
-      _attacked.push_back(coordinate);
+      _attacked.push_back(coordinate); //push it to the attacked vector;
     }
     
     bool getAttackedOrOccupied(int x, int y, bool target = false){ // Using polymorphism - behaviour of this func changes depending if the user is a target or is checking their own ships;
@@ -744,7 +819,7 @@ class clsGamestate{
     void startGame(){
       char userChoice;
 
-      if(_activePlayer == 0){
+      // if(_activePlayer == 0){
         while(userChoice != 'y' && userChoice != 'n'){
           Log("Ready to start the game? (y/n)");
           cin >> userChoice;
@@ -757,14 +832,14 @@ class clsGamestate{
         if(userChoice == 'y'){
           ClearConsole();
           Log("Game starting...");
-          _stage = 1;
+          setState(1);
           updateUsers(); // calling when stage == 1;
           updateUsers(); // calling when stage == 2;
         }
-      }
+      // }
     }
 
-    int getActivePlayers(int id){
+    int getActivePlayers(){
       int count = 0;
 
       for(int i = 0; i < _users.size(); i++){
@@ -776,24 +851,23 @@ class clsGamestate{
     }
 
     void updateUsers(){
-      if(_stage == 1){ // if stage is 'placement' - get players to place ships;
+      if(_state == 1){ // if stage is 'placement' - get players to place ships;
         for(int i = 0; i < _users.size(); i++){
-          char input; // DELETE THIS?
           _users[i].placeFleet(getBoardSize().x, getBoardSize().y); // get user to place their boats;
           yToContinue();
         }
-        _stage = 2;
-      } else if(_stage == 2){ // if stage is 'play' - cycle through users to choose target & attack;
-        while(_users.size() > 1){ // while there is more than 1 active player
-          for(int i = 0; i < _users.size(); i++){
-            if(_users[i].isActive()){ // ask each active player to attack
+        setState(2);
+      } else if(_state == 2){ // if stage is 'play' - cycle through users to choose target & attack;
+        while(getActivePlayers() > 1){ // while there is more than 1 active player
+          for(int i = 0; i < _users.size(); i++){ // for each user
+            if(_users[i].isActive()){ // if the player is active;
               pair <bool, int> foundUser;
               int targetId = 0;
 
               ClearConsole();
               printBattleTitle();
-              Log("It is ", _users[i].getName(), "'s turn...");
-              yToContinue(); // wait for user to input to continue
+              // Log("It is ", _users[i].getName(), "'s turn...");
+              // yToContinue(); // wait for user to input to continue
               printAllUsers(_users[i].getId());
 
               do {
@@ -802,7 +876,7 @@ class clsGamestate{
                   Log("Please enter a valid userId");
                   Log();
                 }
-
+                Log();
                 Log(_users[i].getName(), ", enter the ID of the player you want to attack: ");
                 cin >> targetId;
                 foundUser = checkUserExistsById(targetId);
@@ -813,31 +887,55 @@ class clsGamestate{
               printBattleTitle();
 
               getUserById(foundUser.second).viewBoard(getBoardSize().x, getBoardSize().y, true); // view targets board;
-              udtCoord validatedAttackCoord = selectTargetCoords(getUserById(foundUser.second)); // get user to select attack coords;
+              _users[i].viewBoard(getBoardSize().x, getBoardSize().y); // View current player board;
 
+              udtCoord validatedAttackCoord = selectTargetCoords(getUserById(foundUser.second), getBoardSize().x, getBoardSize().y); // get user to select attack coords;
               getUserById(foundUser.second).addAttacked(validatedAttackCoord.x, validatedAttackCoord.y); // add the validated attack coordinate to the targets board;
-
+              
+              ClearConsole();
+              printBattleTitle();
               getUserById(foundUser.second).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
+              _users[i].viewBoard(getBoardSize().x, getBoardSize().y); // View current player board;
               yToContinue();
             }
           }
+          ClearConsole();
+          printRoundOverTitle();
+          printRoundEvents();
+          roundEvents.clear();
+          yToContinue();
         }
-      } else if(_stage == 3){ // if stage is 'winner' - display winner screen to remaining player(s);
+        setState(3);
+      } else if(_state == 3){ // if stage is 'winner' - display winner screen to remaining player(s);
+        Log("STAGE 3 - WINNER");
+        Log("ASK TO PLAY AGAIN");
         //display winner screen;
         //ask if they want to play again;
       }
     }
 
-    udtCoord selectTargetCoords(clsUser targetUser){
+    udtCoord selectTargetCoords(clsUser targetUser, int xSize, int ySize){
       udtCoord attackCoord;
 
-      Log("Enter the X coordinate that you want to attack"); // convert to "do while"
-      cin >> attackCoord.x;
+      do {
+        if(!attackCoord.x && !attackCoord.y){
+          Log("Please enter valid attack coordinates");
+        }
 
-      Log("Enter the Y coordinate that you want to attack");
-      cin >> attackCoord.y;
+        Log("Enter the X coordinate that you want to attack"); // convert to "do while"
+        cin >> attackCoord.x;
 
-      while(targetUser.checkCollision(attackCoord.x, attackCoord.y, true)){
+        Log("Enter the Y coordinate that you want to attack");
+        cin >> attackCoord.y;
+
+        //DEBUGGING
+        Log("targetUser.validateOriginCoord(xSize, ySize, attackCoord.x) == ", to_string(targetUser.validateOriginCoord(xSize, ySize, attackCoord.x)));
+        Log("targetUser.validateOriginCoord(xSize, ySize, attackCoord.y) == ", to_string(targetUser.validateOriginCoord(xSize, ySize, attackCoord.y)));
+        yToContinue();
+
+      } while(!targetUser.validateOriginCoord(xSize, ySize, attackCoord.x) || !targetUser.validateOriginCoord(xSize, ySize, attackCoord.y)); // check entered coords exist within the map;
+
+      while(targetUser.checkCollision(attackCoord.x, attackCoord.y, true)){// while the attack coords have already been attacked OR the attack coords do not fit on the board -> ask for new coords
         Log("This coordinate has already been attacked, please enter new coordinates");
 
         Log("Enter the X coordinate that you want to attack");
@@ -853,9 +951,16 @@ class clsGamestate{
       ClearConsole();
       printPlayersTitle();
 
+      Log("ID | Name");
+      Log("¯¯¯|¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯");
       for(int i = 0; i < _users.size(); i++){
-        Log(to_string(_users[i].getId()), "." , _users[i].getName());
+        if(getIntLength(i) == 2){
+          Log(to_string(_users[i].getId()), " | " , _users[i].getName());
+        } else {
+          Log(to_string(_users[i].getId()), "  | " , _users[i].getName());
+        }
       }    
+      Log("___|____________________________");
       Log();
     };
 
@@ -863,12 +968,14 @@ class clsGamestate{
       ClearConsole();
       printSelectTargetTitle();
 
+      Log("ID | Name");
+      Log("¯¯¯|¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯");
       for(int i = 0; i < _users.size(); i++){
         if(_users[i].getId() != callerId){
-          Log(to_string(_users[i].getId()), "." , _users[i].getName());
+          Log(to_string(_users[i].getId()), "  | " , _users[i].getName());
         }
-      }    
-      Log();
+      }
+      Log("___|____________________________"); 
     };
 
     void registerUser(clsUser& user){ // register a user to the gamestate by adding it to the _users vector;
@@ -916,8 +1023,12 @@ class clsGamestate{
       }
     }
 
+    void setState(int i){ // Debug func;
+      _state = i;
+    }
+
   private:
-    int _stage = 0;
+    int _state = 0;
     int _activePlayer = 0;
     int _playerCount;
     vector < clsUser > _users;
@@ -933,18 +1044,33 @@ int main(){
   clsGamestate* state; // set variable 'Gamestate' as a pointer;
   state = clsGamestate::getInstance(); // assign the instance of clsGamestate;
 
+  vector <clsShip> shipConfig;
 
-  clsShip carrier("Aircraft Carrier", 5);
+  // clsShip carrier("Aircraft Carrier", 5);
   // clsShip battleship("Battleship", 4);
   // clsShip submarine("Submarine", 3);
   // clsShip cruiser("Cruiser", 3);
-  // clsShip patrolBoat("Patrol Boat", 2);
+  clsShip patrolBoat("Patrol Boat", 2);
 
-  state -> registerShip(carrier); 
+  shipConfig.push_back(patrolBoat);
+
+  // state -> registerShip(carrier); 
   // state -> registerShip(battleship); 
   // state -> registerShip(submarine); 
   // state -> registerShip(cruiser); 
-  // state -> registerShip(patrolBoat); 
+  state -> registerShip(patrolBoat); 
 
-  state -> startNewGame();
+  clsUser user1("Alex", 1, false, shipConfig);
+  clsUser user2("Sofia", 2, false, shipConfig);
+  state -> registerUser(user1);
+  state -> registerUser(user2);
+
+  state -> setState(1);
+  state -> setBoardSize(10, 10);
+
+  state -> updateUsers();
+  state -> updateUsers();
+  state -> updateUsers();
+
+  // state -> startNewGame();
 }
