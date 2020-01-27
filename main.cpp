@@ -322,7 +322,6 @@ class clsShip{
     int _length;
     int _health;
     bool _announced = false;
-    bool _destroyed = false;
     string _name;
     vector < bulkhead > _bulkheads;
 };
@@ -518,7 +517,7 @@ class clsUser{ //Observer
         cin >> y;
 
         while(!validateOriginCoord(xSize, ySize, y)){ //validate y coord
-          Log("Invalid X coordinate entered, please enter a coordinate between 0, " ,to_string(ySize));
+          Log("Invalid Y coordinate entered, please enter a coordinate between 0, " ,to_string(ySize));
           cin >> y;
         }
 
@@ -685,6 +684,18 @@ class clsUser{ //Observer
       Log(getName(), " isCPU -> ", to_string(_cpu));
     }
 
+    int calculateHealth(){ // check each ship that a player owns & check if they have remaining bulkheads;
+      int remainingShips = 0;
+
+      for(int i = 0; i < _ships.size(); i++){
+        if(_ships[i].getHealth() != 0){
+          remainingShips++;
+        }
+      }
+
+      return remainingShips;
+    }
+
     void setInactive(){
       _active = false;
     }
@@ -744,14 +755,12 @@ class clsGamestate{
     }
 
     bool checkIfDuplicateUser(string newName){
-      bool result = false;
-
       for(int i = 0; i < _users.size(); i++){
         if(_users[i].getName() == newName){
-          result = true;
+          return true;
         }
       }
-      return result;
+      return false;
     }
 
     void initPlayers(){
@@ -819,24 +828,22 @@ class clsGamestate{
     void startGame(){
       char userChoice;
 
-      // if(_activePlayer == 0){
-        while(userChoice != 'y' && userChoice != 'n'){
-          Log("Ready to start the game? (y/n)");
-          cin >> userChoice;
-        }
+      while(userChoice != 'y' && userChoice != 'n'){
+        Log("Ready to start the game? (y/n)");
+        cin >> userChoice;
+      }
 
-        if(userChoice == 'n'){
-          startNewGame();
-        }
+      if(userChoice == 'n'){
+        startNewGame();
+      }
 
-        if(userChoice == 'y'){
-          ClearConsole();
-          Log("Game starting...");
-          setState(1);
-          updateUsers(); // calling when stage == 1;
-          updateUsers(); // calling when stage == 2;
-        }
-      // }
+      if(userChoice == 'y'){
+        ClearConsole();
+        Log("Game starting...");
+        setState(1);
+        updateUsers(); // calling when stage == 1;
+        updateUsers(); // calling when stage == 2;
+      }
     }
 
     int getActivePlayers(){
@@ -897,6 +904,13 @@ class clsGamestate{
               getUserById(foundUser.second).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
               _users[i].viewBoard(getBoardSize().x, getBoardSize().y); // View current player board;
               yToContinue();
+
+              if(_users[i].calculateHealth() == 0){
+                Log("All of ", _users[i].getName(), "'s ships have been destroyed");
+                // Add this event to the round events queue;
+                // Set them as inactive -> make sure they are removed from the user list;
+                // If only 1 active player remaining -> go to win condition;
+              }
             }
           }
           ClearConsole();
@@ -929,9 +943,9 @@ class clsGamestate{
         cin >> attackCoord.y;
 
         //DEBUGGING
-        Log("targetUser.validateOriginCoord(xSize, ySize, attackCoord.x) == ", to_string(targetUser.validateOriginCoord(xSize, ySize, attackCoord.x)));
-        Log("targetUser.validateOriginCoord(xSize, ySize, attackCoord.y) == ", to_string(targetUser.validateOriginCoord(xSize, ySize, attackCoord.y)));
-        yToContinue();
+        // Log("targetUser.validateOriginCoord(xSize, ySize, attackCoord.x) == ", to_string(targetUser.validateOriginCoord(xSize, ySize, attackCoord.x)));
+        // Log("targetUser.validateOriginCoord(xSize, ySize, attackCoord.y) == ", to_string(targetUser.validateOriginCoord(xSize, ySize, attackCoord.y)));
+        // yToContinue();
 
       } while(!targetUser.validateOriginCoord(xSize, ySize, attackCoord.x) || !targetUser.validateOriginCoord(xSize, ySize, attackCoord.y)); // check entered coords exist within the map;
 
@@ -1044,33 +1058,33 @@ int main(){
   clsGamestate* state; // set variable 'Gamestate' as a pointer;
   state = clsGamestate::getInstance(); // assign the instance of clsGamestate;
 
-  vector <clsShip> shipConfig;
+  // vector <clsShip> shipConfig;
 
-  // clsShip carrier("Aircraft Carrier", 5);
-  // clsShip battleship("Battleship", 4);
-  // clsShip submarine("Submarine", 3);
-  // clsShip cruiser("Cruiser", 3);
+  clsShip carrier("Aircraft Carrier", 5);
+  clsShip battleship("Battleship", 4);
+  clsShip submarine("Submarine", 3);
+  clsShip cruiser("Cruiser", 3);
   clsShip patrolBoat("Patrol Boat", 2);
 
-  shipConfig.push_back(patrolBoat);
+  // shipConfig.push_back(patrolBoat);
 
-  // state -> registerShip(carrier); 
-  // state -> registerShip(battleship); 
-  // state -> registerShip(submarine); 
-  // state -> registerShip(cruiser); 
+  state -> registerShip(carrier); 
+  state -> registerShip(battleship); 
+  state -> registerShip(submarine); 
+  state -> registerShip(cruiser); 
   state -> registerShip(patrolBoat); 
 
-  clsUser user1("Alex", 1, false, shipConfig);
-  clsUser user2("Sofia", 2, false, shipConfig);
-  state -> registerUser(user1);
-  state -> registerUser(user2);
+  // clsUser user1("Alex", 1, false, shipConfig);
+  // clsUser user2("Sofia", 2, false, shipConfig);
+  // state -> registerUser(user1);
+  // state -> registerUser(user2);
 
-  state -> setState(1);
-  state -> setBoardSize(10, 10);
+  // state -> setState(1);
+  // state -> setBoardSize(10, 10);
 
-  state -> updateUsers();
-  state -> updateUsers();
-  state -> updateUsers();
+  // state -> updateUsers();
+  // state -> updateUsers();
+  // state -> updateUsers();
 
-  // state -> startNewGame();
+  state -> startNewGame();
 }
