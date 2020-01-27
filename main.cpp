@@ -6,7 +6,8 @@
 using namespace std;
 
 /* 
-NOTES
+Name: Alexander Weller
+email: alexander.weller@ada.ac.uk
 
 Welcome to Alex Wellers...
    ___         __   __   __           __    _          
@@ -100,6 +101,14 @@ void printRed(string message){
 
 string setRed(string message){
   return "\x1B[31m" + message + "\033[0m";
+}
+
+string setBrightGreen(string message){
+  return "\x1B[92m" + message + "\033[0m";
+}
+
+string setCyan(string message){
+  return "\x1B[96m" + message + "\033[0m";
 }
 
 void printGreen(string message){
@@ -254,8 +263,8 @@ string cleanString(string text){
 
 void printBoardKey(){
   Log("Key:");
-  Log(setGreen("S") + " = Friendly battleship");
-  Log(setYellow("x") + " = Missed torpedo attack");
+  Log(setGreen("█") + " = Friendly battleship");
+  Log(setYellow("☼") + " = Missed torpedo attack");
   Log(setRed("X") + " = Torpedo attack hit a battleship");
   Log();
 }
@@ -439,21 +448,26 @@ class clsUser{ //Observer
     void viewBoard(int xSize, int ySize, bool target = false){ // view a players board, optional param 'target' will change if the board is drawn with occupied spaces or spaces that have been fired at;
       if(target){
         Log("Targeting ", getName(), "'s board");
-        Log();
       } else {
         Log("Your (", getName(), "'s) board");
-        Log();
       }
+
+      cout << "   ╔";
+      for(int x = 1; x <= xSize * 2; x++){ // print x axis labels
+        cout << "═";
+      }
+      cout << "╗";
+      Log();
 
       for(int y = ySize; y >= 1; y--){
         int yLen = getIntLength(y); // get the num of digits of current iterator y
 
         if(yLen == 1){ // if y is a single digit, use this spacing
-            cout << y << "  | ";
+            cout << setCyan(to_string(y)) << "  ╠ ";
           } else if(yLen == 2){ // if y is double digit, change spacing;
-            cout << y << " | ";
+            cout << setCyan(to_string(y)) << " ╠ ";
           } else { // else print standard space;
-            cout << y << "| ";
+            cout << setCyan(to_string(y)) << "╠ ";
           }
         for(int x = 1; x <= xSize; x++){
           if(getAttackedOrOccupied(x, y, target)){ //if the current coord matches an already occupied or attacked coord (based on the param 'target')
@@ -461,57 +475,89 @@ class clsUser{ //Observer
               if(checkCollision(x, y)){//...and this point contains a ship 
                 cout << setRed("X ");// print an orange X if this coord has been attacked and is a hit;
               } else {
-                cout << setYellow("x "); // print a yellow x if this coord has been attacked but is a miss;
+                cout << setYellow("☼ "); // print a yellow x if this coord has been attacked but is a miss;
               }
             } else if (checkCollision(x, y, true)){ // add another if here to check if the ship has been sunk <- ALEX HERE (TODO / DEBUG)
               cout << setRed("X "); // print an X if this coord is occupied by a ship and has been hit;
             } else if (checkCollision(x, y)){ 
-              cout << setGreen("S "); // print an S if this coord is occupied by a ship;
+              cout << setGreen("█ "); // print an S if this coord is occupied by a ship;
             } 
           }
           else if(hasBeenAttacked(x, y)){
-              cout << setYellow("x "); // print a yellow x if this coord has been hit but is not occupied by a ship;
-            } else {
-            cout << "_ ";
+              cout << setYellow("☼ "); // print a yellow x if this coord has been hit but is not occupied by a ship;
+            } else if (x == xSize){
+            cout << "▬";
+          } else {
+            cout << "▬ ";
           }
         }
+        // cout << "║";  
         Log();
       }
+
+      cout << "   ╚";
+      for(int x = 1; x <= xSize * 2; x++){ // print x axis labels
+        cout << "═";
+      }
+      cout << "╝";
+      Log();
       cout << "     ";
       for(int x = 1; x <= xSize; x++){ // print x axis labels
-        // int xLen = getIntLength(x); // get the num of digits of current iterator x
-        cout << x << " ";
+        cout << setBrightGreen(to_string(x)) << " ";
       }
       Log();
       Log();
     }
 
     void viewBoard(int xSize, int ySize, int selectedX, int selectedY){ // view a players board with a point highlighted; using function overloading here to alter the behaviour of this func;
-        for(int y = ySize; y >= 1; y--){
-          if(getIntLength(y) == 1){
-            cout << y << "  | ";
-          } else if(getIntLength(y) == 2){ // if y is double digit, change spacing;
-            cout << y << " | ";
-          } else { // else print standard space;
-            cout << y << "| ";
-          }
-          
-          for(int x = 1; x <= xSize; x++){
-            if(getAttackedOrOccupied(x, y)){
-              printGreen("S ");
-            } else if(x == selectedX && y == selectedY){
-              printGreen("_ "); // prints the selected coordinate in green;
-            } else {
-              cout << "_ ";
-            }
-          }
-          Log();
+      Log();
+      Log();
+      Log("Your (", getName(), "'s) board");
+      Log();
+
+      cout << "   ╔";
+      for(int x = 1; x <= xSize * 2; x++){ // print x axis labels
+        cout << "═";
+      }
+      cout << "╗";
+      Log();
+      
+      for(int y = ySize; y >= 1; y--){
+        if(getIntLength(y) == 1){
+          cout << setCyan(to_string(y)) << "  ╠ ";
+        } else if(getIntLength(y) == 2){ // if y is double digit, change spacing;
+          cout << setCyan(to_string(y)) << " ╠ ";
+        } else { // else print standard space;
+          cout << setCyan(to_string(y)) << "╠ ";
         }
-        cout << "     ";
-        for(int x = 1; x <= xSize; x++){ // print x axis labels
-          cout << x << " "; // TODO: fix spacing if xSize exceeds 10;
+        
+        for(int x = 1; x <= xSize; x++){
+          if(getAttackedOrOccupied(x, y)){
+            printGreen("█ ");
+          } else if(x == selectedX && y == selectedY){
+            printRed("▬ "); // prints the selected coordinate in green;
+          } else if (x == xSize){
+            cout << "▬ ";
+          } else {
+            cout << "▬ ";
+          }
         }
+        // cout << "║";  
         Log();
+      }
+
+      cout << "   ╚";
+      for(int x = 1; x <= xSize * 2; x++){ // print x axis labels
+        cout << "═";
+      }
+      cout << "╝";
+      Log();
+      cout << "     ";
+      for(int x = 1; x <= xSize; x++){ // print x axis labels
+        cout << setBrightGreen(to_string(x)) << " ";
+      }
+      Log();
+      Log();
     }
 
     void placeFleet(int xSize, int ySize){
@@ -527,7 +573,7 @@ class clsUser{ //Observer
         Log();
         viewBoard(xSize, ySize); // TODO: Prompt user to view board to prevent other users seeing it;
 
-        Log("Enter X coord");
+        Log("Enter " + setBrightGreen("X") + " coord");
         cin >> x;
 
         while(!validateOriginCoord(xSize, ySize, x)){ //validate x coord
@@ -535,7 +581,7 @@ class clsUser{ //Observer
           cin >> x;
         }
         
-        Log("Enter Y coord");
+        Log("Enter " + setCyan("Y") + " coord");
         cin >> y;
 
         while(!validateOriginCoord(xSize, ySize, y)){ //validate y coord
@@ -545,17 +591,17 @@ class clsUser{ //Observer
 
         while(checkCollision(x, y)){ // checks if origin point collides with another ship
           Log("Placing your" + _ships[i].getName() + " here, will cause it to collide with another ship\n");
-          Log("Please enter a new X coordinate");
+          Log("Please enter a new " + setBrightGreen("X") + " coordinate");
           cin >> x;
           
-          Log("Please enter a new Y coordinate");
+          Log("Please enter a new " + setCyan("Y") + " coordinate");
           cin >> y;
         }
 
         ClearConsole();
         printPlacementTitle();
-        Log(getName(), ", place your ", _ships[i].getName() + " (length: " + to_string(_ships[i].getLength()) + ")");
-        Log();
+        // Log(getName(), ", place your ", _ships[i].getName() + " (length: " + to_string(_ships[i].getLength()) + ")");
+        // Log();
         viewBoard(xSize, ySize, x, y);
         Log();
 
@@ -639,7 +685,7 @@ class clsUser{ //Observer
       for(int i = 0; i < _ships.size(); i++){ // for each registered ship
         for(int j = 0; j < _ships[i].getBulkheads().size(); j++){ //for each bulkhead
           if(x == _ships[i].getBulkheads()[j].x && y == _ships[i].getBulkheads()[j].y){ // if the passed in coords match a bulkhead;
-            roundEvents.push_back(getName() + "'s " + _ships[i].getName() + " has been hit!"); // If a ship has been hit, add it to the message queue;
+            roundEvents.push_back(getName() + "'s " + _ships[i].getName() + " has been " + setYellow("hit!")); // If a ship has been hit, add it to the message queue;
             _ships[i].getBulkheads()[j].hit = true; // set the current bulkheads status hit = true;
             _ships[i].decrementHealth(); // decrease the current ships health by 1;
           }
@@ -647,7 +693,7 @@ class clsUser{ //Observer
 
         if(_ships[i].getHealth() == 0 && !_ships[i].getAnnounced()){ //if any of the updated ships have been destroyed & they have not been announced;
           _ships[i].setAnnounced();
-          roundEvents.push_back(getName() + "'s " + _ships[i].getName() + " has been destroyed!"); // Add this to the message queue
+          roundEvents.push_back(getName() + "'s " + _ships[i].getName() + " has been " + setRed("destroyed!")); // Add this to the message queue
         }
       }
     }
@@ -823,10 +869,10 @@ class clsGamestate{
       ClearConsole();
       printConfigTitle();
 
-      Log("Please enter the size of the X axis for player boards");
+      Log("Please enter the size of the " + setBrightGreen("X") + " axis for player boards");
       cin >> x;
 
-      Log("Please enter the size of the Y axis for player boards");
+      Log("Please enter the size of the " + setCyan("Y") + " axis for player boards");
       cin >> y;
 
       setBoardSize(x, y);
@@ -860,7 +906,6 @@ class clsGamestate{
 
       if(userChoice == 'y'){
         ClearConsole();
-        Log("Game starting...");
         setState(1);
         updateUsers(); // calling when stage == 1;
         updateUsers(); // calling when stage == 2;
@@ -905,7 +950,7 @@ class clsGamestate{
                   Log();
                 }
                 Log();
-                Log(_users[i].getName(), ", enter the ID of the player you want to attack: ");
+                Log(_users[i].getName(), ", enter the " + setYellow("ID") + " of the player you want to attack: ");
                 cin >> targetId;
                 foundUser = checkUserExistsById(targetId);
 
@@ -959,10 +1004,10 @@ class clsGamestate{
 
         printBoardKey();
 
-        Log("Enter the X coordinate that you want to attack"); // convert to "do while"
+        Log("Enter the " + setBrightGreen("X") + " coordinate that you want to attack"); // convert to "do while"
         cin >> attackCoord.x;
 
-        Log("Enter the Y coordinate that you want to attack");
+        Log("Enter the " + setCyan("Y") + " coordinate that you want to attack");
         cin >> attackCoord.y;
 
       } while(!targetUser.validateOriginCoord(xSize, ySize, attackCoord.x) || !targetUser.validateOriginCoord(xSize, ySize, attackCoord.y)); // check entered coords exist within the map;
@@ -970,10 +1015,10 @@ class clsGamestate{
       while(targetUser.checkCollision(attackCoord.x, attackCoord.y, true)){// while the attack coords have already been attacked OR the attack coords do not fit on the board -> ask for new coords
         Log("This coordinate has already been attacked, please enter new coordinates");
 
-        Log("Enter the X coordinate that you want to attack");
+        Log("Enter the " + setBrightGreen("X") + " coordinate that you want to attack");
         cin >> attackCoord.x;
 
-        Log("Enter the Y coordinate that you want to attack");
+        Log("Enter the " + setCyan("Y") + " coordinate that you want to attack");
         cin >> attackCoord.y;
       }
       return attackCoord;
@@ -983,16 +1028,16 @@ class clsGamestate{
       ClearConsole();
       printPlayersTitle();
 
-      Log("ID | Name");
-      Log("¯¯¯|¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯");
+      Log("ID ║ Name");
+      Log("═══╬════════════════════════════");
       for(int i = 0; i < _users.size(); i++){
         if(getIntLength(i) == 2){
-          Log(to_string(_users[i].getId()), " | " , _users[i].getName());
+          Log(setYellow(to_string(_users[i].getId())), " ║ " , _users[i].getName());
         } else {
-          Log(to_string(_users[i].getId()), "  | " , _users[i].getName());
+          Log(setYellow(to_string(_users[i].getId())), "  ║ " , _users[i].getName());
         }
       }    
-      Log("___|____________________________");
+      Log("═══╩════════════════════════════");
       Log();
     };
 
@@ -1000,14 +1045,18 @@ class clsGamestate{
       ClearConsole();
       printSelectTargetTitle();
 
-      Log("ID | Name");
-      Log("¯¯¯|¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯");
+      Log("ID ║ Name");
+      Log("═══╬════════════════════════════");
       for(int i = 0; i < _users.size(); i++){
         if(_users[i].getId() != callerId){
-          Log(to_string(_users[i].getId()), "  | " , _users[i].getName());
+          if(getIntLength(i) == 2){
+          Log(setYellow(to_string(_users[i].getId())), " ║ " , _users[i].getName());
+        } else {
+          Log(setYellow(to_string(_users[i].getId())), "  ║ " , _users[i].getName());
+          }
         }
       }
-      Log("___|____________________________"); 
+      Log("═══╩════════════════════════════");
     };
 
     void registerUser(clsUser& user){ // register a user to the gamestate by adding it to the _users vector;
