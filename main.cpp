@@ -219,11 +219,25 @@ void printBattleTitle(){
 }
 
 void printRoundOverTitle(){
-string line1 = "   ___                      __  ____                 ";
-string line2 = "  / _ \\ ___  __ __ ___  ___/ / / __ \\ _  __ ___  ____";
-string line3 = " / , _// _ \\/ // // _ \\/ _  / / /_/ /| |/ // -_)/ __/";
-string line4 = "/_/|_| \\___/\\_,_//_//_/\\_,_/  \\____/ |___/ \\__//_/   ";
+  string line1 = "   ___                      __  ____                 ";
+  string line2 = "  / _ \\ ___  __ __ ___  ___/ / / __ \\ _  __ ___  ____";
+  string line3 = " / , _// _ \\/ // // _ \\/ _  / / /_/ /| |/ // -_)/ __/";
+  string line4 = "/_/|_| \\___/\\_,_//_//_/\\_,_/  \\____/ |___/ \\__//_/   ";
                                                      
+
+  Log(setGreen(line1));
+  Log(setGreen(line2));
+  Log(setGreen(line3));
+  Log(setGreen(line4));
+  Log(); 
+}
+
+void printGameOverTitle(){
+  string line1 = "  _____                   ____                   __";
+  string line2 = " / ___/___ _ __ _  ___   / __ \\ _  __ ___  ____ / /";
+  string line3 = "/ (_ // _ `//  ' \\/ -_) / /_/ /| |/ // -_)/ __//_/ ";
+  string line4 = "\\___/ \\_,_//_/_/_/\\__/  \\____/ |___/ \\__//_/  (_)  ";
+                                                   
 
   Log(setGreen(line1));
   Log(setGreen(line2));
@@ -909,6 +923,7 @@ class clsGamestate{
         setState(1);
         updateUsers(); // calling when stage == 1;
         updateUsers(); // calling when stage == 2;
+        updateUsers();
       }
     }
 
@@ -935,7 +950,12 @@ class clsGamestate{
       } else if(_state == 2){ // if stage is 'play' - cycle through users to choose target & attack;
         while(getActivePlayers() > 1){ // while there is more than 1 active player
           for(int i = 0; i < _users.size(); i++){ // for each user
-            if(_users[i].isActive()){ // if the player is active;
+            if(_users[i].calculateHealth() == 0){
+                roundEvents.push_back(setRed("!!! All of " + _users[i].getName() + "'s ships have been destroyed !!!"));
+                _users[i].setInactive();
+                yToContinue();
+                
+              } else if(_users[i].isActive()){ // if the player is active;
               pair <bool, int> foundUser;
               int targetId = 0;
 
@@ -970,13 +990,6 @@ class clsGamestate{
               getUserById(foundUser.second).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
               _users[i].viewBoard(getBoardSize().x, getBoardSize().y); // View current player board;
               yToContinue();
-
-              if(_users[i].calculateHealth() == 0){
-                Log("All of ", _users[i].getName(), "'s ships have been destroyed");
-                // Add this event to the round events queue;
-                // Set them as inactive -> make sure they are removed from the user list;
-                // If only 1 active player remaining -> go to win condition;
-              }
             }
           }
           ClearConsole();
@@ -987,10 +1000,22 @@ class clsGamestate{
         }
         setState(3);
       } else if(_state == 3){ // if stage is 'winner' - display winner screen to remaining player(s);
-        Log("STAGE 3 - WINNER");
-        Log("ASK TO PLAY AGAIN");
-        //display winner screen;
-        //ask if they want to play again;
+        char input;
+        
+        ClearConsole();
+        printGameOverTitle();
+        Log(setGreen(_users[0].getName() + " HAS WON!"));
+        Log();
+
+        do{
+          if(input == 'y'){
+            startNewGame();
+          } else if(input == 'n'){
+            break;
+          }
+          Log("PLAY AGAIN? (y/n)");
+          cin >> input;
+        } while(input != 'y' || input != 'n'); 
       }
     }
 
@@ -1095,14 +1120,14 @@ class clsGamestate{
       _fleetConfig.push_back(ship);
     }
 
-    void removeUserById(int id){
-      for(int i = 0; i < _users.size(); i++){
-        if(_users[i].getId() == id){
-          Log("Setting ", _users[i].getName(), " as inactive");
-          _users[i].setInactive();
-        }
-      }
-    }
+    // void removeUserById(int id){
+    //   for(int i = 0; i < _users.size(); i++){
+    //     if(_users[i].getId() == id){
+    //       Log("Setting ", _users[i].getName(), " as inactive");
+    //       _users[i].setInactive();
+    //     }
+    //   }
+    // }
 
     void setState(int i){ // Debug func;
       _state = i;
@@ -1134,7 +1159,7 @@ int main(){
   clsShip patrolBoat("Patrol Boat", 2);
 
   shipConfig.push_back(patrolBoat);
-  shipConfig.push_back(cruiser);
+  // shipConfig.push_back(cruiser);
 
   // state -> registerShip(carrier); 
   // state -> registerShip(battleship); 
