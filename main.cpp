@@ -42,6 +42,8 @@ struct udtCoord{
   int y;
 };
 
+#include "easyCPU.cpp" // includes struct for udtCoord
+
 vector <string> roundEvents;
 
 //UTILITIES CLASS
@@ -284,11 +286,29 @@ void printBoardKey(){
   Log(setRed("X") + " = Torpedo attack hit a battleship");
   Log();
 }
+ 
 
-void eraseToEndofLine(int line){
-  cout << "\033[" + to_string(line) << endl;
-} 
+// Easy CPU Functions
+udtCoord cpuEasySelectCoords(int xSize, int ySize){
+  udtCoord _tempCoord;
+  
+  //random x
+  //random y
 
+  _tempCoord.x = 5;
+  _tempCoord.y = 5;
+
+  return _tempCoord;
+}
+
+char cpuEasySelectHeading(){
+  char heading = 'u';
+
+  //random heading u/d/l/r
+
+  return heading;
+}
+////
 
 //SHIP CLASS
 class clsShip{
@@ -581,130 +601,215 @@ class clsUser{ //Observer
     void placeFleet(int xSize, int ySize){
       for(int i = 0; i < _ships.size(); i++){
         int x, y;
-        char orient, direction;
+        char heading;
         bool canPlace = false;
 
-        ClearConsole();
-        printPlacementTitle();
+        if(!isCPU()){
+          ClearConsole();
+          printPlacementTitle();
 
-        viewBoard(xSize, ySize);
-        Log(getName(), ", place your ", _ships[i].getName() + " (length: " + to_string(_ships[i].getLength()) + ")");
-        Log();
+          viewBoard(xSize, ySize);
+          Log(getName(), ", place your ", _ships[i].getName() + " (length: " + to_string(_ships[i].getLength()) + ")");
+          Log();
 
-        Log("Enter " + setBrightGreen("X") + " coord");
-        cin >> x;
-
-        while(!validateOriginCoord(xSize, ySize, x) || !cin){ //validate x coord
-          Log("Invalid " + setBrightGreen("X") + " coordinate entered, please enter a coordinate between 0, " ,to_string(xSize));
-          cin.clear();
-          cin.ignore(numeric_limits<streamsize>::max(), '\n');
-          cin >> x;
-        }
-        
-        Log("Enter " + setCyan("Y") + " coord");
-        cin >> y;
-
-        while(!validateOriginCoord(xSize, ySize, y) || !cin){ //validate y coord
-          Log("Invalid " + setCyan("Y") + " coordinate entered, please enter a coordinate between 0, " ,to_string(ySize));
-          cin.clear();
-          cin.ignore(numeric_limits<streamsize>::max(), '\n');
-          cin >> y;
-        }
-
-        while(checkCollision(x, y)){ // checks if origin point collides with another ship
-          Log("Placing your" + _ships[i].getName() + " here, will cause it to collide with another ship\n");
-
-          Log("Please enter a new " + setBrightGreen("X") + " coordinate");
+          Log("Enter " + setBrightGreen("X") + " coord");
           cin >> x;
 
           while(!validateOriginCoord(xSize, ySize, x) || !cin){ //validate x coord
-            Log("Invalid X coordinate entered, please enter a coordinate between 0, " ,to_string(xSize));
+            Log("Invalid " + setBrightGreen("X") + " coordinate entered, please enter a coordinate between 0, " ,to_string(xSize));
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             cin >> x;
           }
           
-          Log("Please enter a new " + setCyan("Y") + " coordinate");
+          Log("Enter " + setCyan("Y") + " coord");
           cin >> y;
 
           while(!validateOriginCoord(xSize, ySize, y) || !cin){ //validate y coord
-            Log("Invalid Y coordinate entered, please enter a coordinate between 0, " ,to_string(ySize));
+            Log("Invalid " + setCyan("Y") + " coordinate entered, please enter a coordinate between 0, " ,to_string(ySize));
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             cin >> y;
           }
-        }
 
-        ClearConsole();
-        printPlacementTitle();
-        viewBoard(xSize, ySize, x, y);
-        Log();
+          while(checkCollision(x, y)){ // checks if origin point collides with another ship
+            Log("Placing your" + _ships[i].getName() + " here, will cause it to collide with another ship\n");
 
-        Log("Enter heading, up, down, left, right (u/d/l/r)"); // get user to input direction
-        cin >> direction;
+            Log("Please enter a new " + setBrightGreen("X") + " coordinate");
+            cin >> x;
 
-        while((direction != 'u' && direction != 'd' && direction != 'l' && direction != 'r') || !cin){ //validate direction - if its not u/d/l/r or is invalid type...
-          cout << "\e[2F"; //move cursor up 2 lines;
-          cout << "\e[0J"; // clear screen from cursor down;
-          Log("Please enter a " + setRed("valid") + " heading (u/d/l/r)");
-          cin.clear();
-          cin.ignore(numeric_limits<streamsize>::max(), '\n');
-          cin >> direction;
-        }
-
-        while(!canPlace){ // validate heading
-          string selected;
-
-          if(direction == 'r'){ // HORIZONTAL - HEADING RIGHT
-            if(!(x + _ships[i].getLength() - 1 > xSize) && !checkCollision(x, y, direction, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
-              canPlace = true;
-              break; // using break here to prevent unnecesary error logging after successful placement;
+            while(!validateOriginCoord(xSize, ySize, x) || !cin){ //validate x coord
+              Log("Invalid X coordinate entered, please enter a coordinate between 0, " ,to_string(xSize));
+              cin.clear();
+              cin.ignore(numeric_limits<streamsize>::max(), '\n');
+              cin >> x;
             }
-            selected = "right";
+            
+            Log("Please enter a new " + setCyan("Y") + " coordinate");
+            cin >> y;
+
+            while(!validateOriginCoord(xSize, ySize, y) || !cin){ //validate y coord
+              Log("Invalid Y coordinate entered, please enter a coordinate between 0, " ,to_string(ySize));
+              cin.clear();
+              cin.ignore(numeric_limits<streamsize>::max(), '\n');
+              cin >> y;
+            }
           }
 
-          if(direction == 'l'){ // HORIZONTAL - HEADING LEFT
-            if(!(x - _ships[i].getLength() < 0) && !checkCollision(x, y, direction, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
-              canPlace = true;
-              break;
-            }
-            selected = "left";
-          } 
+          ClearConsole();
+          printPlacementTitle();
+          viewBoard(xSize, ySize, x, y);
+          Log();
 
-          if(direction == 'u'){ //VERTICAL - HEADING UP
-            if(!(y + _ships[i].getLength() - 1 > ySize) && !checkCollision(x, y, direction, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
-              canPlace = true;
-              break;
-            }
-            selected = "up";
+          Log("Enter heading, up, down, left, right (u/d/l/r)"); // get user to input heading
+          cin >> heading;
+
+          while((heading != 'u' && heading != 'd' && heading != 'l' && heading != 'r') || !cin){ //validate heading - if its not u/d/l/r or is invalid type...
+            cout << "\e[2F"; //move cursor up 2 lines;
+            cout << "\e[0J"; // clear screen from cursor down;
+            Log("Please enter a " + setRed("valid") + " heading (u/d/l/r)");
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cin >> heading;
           }
 
-          if(direction == 'd'){ //VERTICAL - HEADING DOWN
-            if(!(y - _ships[i].getLength() < 0) && !checkCollision(x, y, direction, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
-              canPlace = true;
-              break;
+          while(!canPlace){ // validate heading
+            string selected;
+
+            if(heading == 'r'){ // HORIZONTAL - HEADING RIGHT
+              if(!(x + _ships[i].getLength() - 1 > xSize) && !checkCollision(x, y, heading, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
+                canPlace = true;
+                break; // using break here to prevent unnecesary error logging after successful placement;
+              }
+              selected = "right";
             }
-            selected = "down";
+
+            if(heading == 'l'){ // HORIZONTAL - HEADING LEFT
+              if(!(x - _ships[i].getLength() < 0) && !checkCollision(x, y, heading, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
+                canPlace = true;
+                break;
+              }
+              selected = "left";
+            } 
+
+            if(heading == 'u'){ //VERTICAL - HEADING UP
+              if(!(y + _ships[i].getLength() - 1 > ySize) && !checkCollision(x, y, heading, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
+                canPlace = true;
+                break;
+              }
+              selected = "up";
+            }
+
+            if(heading == 'd'){ //VERTICAL - HEADING DOWN
+              if(!(y - _ships[i].getLength() < 0) && !checkCollision(x, y, heading, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
+                canPlace = true;
+                break;
+              }
+              selected = "down";
+            }
+
+            Log("Your ", _ships[i].getName(), " is too long to be placed at " + to_string(x) + ", " + to_string(y) + ", heading " + selected);
+            Log("Choose a different heading (u/d/l/r)");
+            cin >> heading;
           }
 
-          Log("Your ", _ships[i].getName(), " is too long to be placed at " + to_string(x) + ", " + to_string(y) + ", heading " + selected);
-          Log("Choose a different heading (u/d/l/r)");
-          cin >> direction;
+          _ships[i].updateBulkheads(x--, y--, xSize, ySize, heading); //update the currently selected ships bulkheads, with adjusted coords as the board is base 0;
+          placeShip(_ships[i]); //Add the selected ships coords to the _occupied variable;
+          ClearConsole();
+          printPlacementTitle();
+          viewBoard(xSize, ySize);//View the board after placement for visual confirmation;
+
+        } else {
+          bool canPlace = false;
+          udtCoord _cpuCoords;
+          char heading;
+
+          ClearConsole();
+
+          printOccupied(); //DEBUG
+
+          Log("CPU PLACEMENT"); // DEBUG
+          yToContinue(); // DEBUG
+
+          do{
+            // select random x & y coords -> validate coords 
+            Log("Generating random coords that do not collide with another ship...");//DEBUG
+            yToContinue();//DEBUG
+
+            _cpuCoords = cpuEasySelectCoords(xSize, ySize);
+
+          } while(checkCollision(_cpuCoords.x, _cpuCoords.y));
+
+          Log("Coords generated: " + to_string(_cpuCoords.x) + " " + to_string(_cpuCoords.y)); // DEBUG
+
+          //select a random heading
+          while(!canPlace){ // validate heading
+            string selected;        
+            heading = cpuEasySelectHeading(); // Assign a random heading to the variable;
+
+            string debugmsg = "Heading generated = "; //DEBUG
+            debugmsg.push_back(heading); //DEBUG
+            Log(debugmsg); //DEBUG
+
+            if(heading == 'r'){ // HORIZONTAL - HEADING RIGHT
+              if(!(_cpuCoords.x + _ships[i].getLength() - 1 > xSize) && !checkCollision(_cpuCoords.x, _cpuCoords.y, heading, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
+                canPlace = true;
+                Log("Placing ship at " + to_string(_cpuCoords.x) + ", " + to_string(_cpuCoords.y) + ", heading " + heading);//DEBUG
+                yToContinue();
+                break; // using break here to prevent unnecesary error logging after successful placement;
+              }
+            }
+
+            if(heading == 'l'){ // HORIZONTAL - HEADING LEFT
+              if(!(_cpuCoords.x - _ships[i].getLength() < 0) && !checkCollision(_cpuCoords.x, _cpuCoords.y, heading, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
+                canPlace = true;
+                Log("Placing ship at " + to_string(_cpuCoords.x) + ", " + to_string(_cpuCoords.y) + ", heading " + heading);//DEBUG
+                yToContinue();
+                break;
+              }
+            } 
+
+            if(heading == 'u'){ //VERTICAL - HEADING UP
+              if(!(_cpuCoords.y + _ships[i].getLength() - 1 > ySize) && !checkCollision(_cpuCoords.x, _cpuCoords.y, heading, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
+                canPlace = true;
+                Log("Placing ship at " + to_string(_cpuCoords.x) + ", " + to_string(_cpuCoords.y) + ", heading " + heading);//DEBUG
+                yToContinue();
+                break;
+              }
+            }
+
+            if(heading == 'd'){ //VERTICAL - HEADING DOWN
+              if(!(_cpuCoords.y - _ships[i].getLength() < 0) && !checkCollision(_cpuCoords.x, _cpuCoords.y, heading, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
+                canPlace = true;
+                Log("Placing ship at " + to_string(_cpuCoords.x) + ", " + to_string(_cpuCoords.y) + ", heading " + heading);//DEBUG
+                yToContinue();
+                break;
+              }
+            }
+          }
+          
+          Log("Logging values"); //DEBUG
+          cout << "x: " << x << endl; //DEBUG
+          cout << "_cpuCoords.x: " << _cpuCoords.x << endl; //DEBUG
+          cout << "y: " << y << endl; //DEBUG
+          cout << "_cpuCoords.y: " << _cpuCoords.y << endl; //DEBUG
+          cout << "xSize: " << xSize << endl; //DEBUG
+          cout << "ySize: " << ySize << endl; //DEBUG
+          cout << "heading: " << heading << endl; //DEBUG
+
+          _ships[i].updateBulkheads(_cpuCoords.x--, _cpuCoords.x--, xSize, ySize, heading); //update the currently selected ships bulkheads;
+          placeShip(_ships[i]); //Add the selected ships coords to the _occupied variable;
+
+          printOccupied();//DEBUG
+
+          Log("DEBUG: VIEWING CPU PLAYER BOARD -> " + getName());//DEBUG
+          viewBoard(xSize, ySize);//DEBUG
+          yToContinue();
         }
-
-        _ships[i].updateBulkheads(x--, y--, xSize, ySize, direction); //update the currently selected ships bulkheads, with adjusted coords as the board is base 0;
-        placeShip(_ships[i]); //Add the selected ships coords to the _occupied variable;
-        ClearConsole();
-        printPlacementTitle();
-        // Log();
-        viewBoard(xSize, ySize);//View the board after placement for visual confirmation;
       }
     }
     
     void placeShip(clsShip ship){
-      Log(getName() + " placed their ", ship.getName());
-      Log();
-
       for(int i = 0; i < ship.getBulkheads().size(); i++){
         udtCoord coordinate;
         coordinate.x = ship.getBulkheads()[i].x;
@@ -790,8 +895,8 @@ class clsUser{ //Observer
       Log();
     }
 
-    void isCPU(){ //DEBUG FUNC
-      Log(getName(), " isCPU -> ", to_string(_cpu));
+    bool isCPU(){ //DEBUG FUNC
+      return _cpu;
     }
 
     int calculateHealth(){ // check each ship that a player owns & check if they have remaining bulkheads;
@@ -890,10 +995,10 @@ class clsGamestate{
           cin >> name;
         }
 
-        // Log("Is ", name, " a CPU player? (y/n)");
-        // while(userChoice != 'y' && userChoice != 'n'){
-        //   cin >> userChoice;
-        // }
+        Log("Is ", name, " a CPU player? (y/n)");
+        while(userChoice != 'y' && userChoice != 'n'){
+          cin >> userChoice;
+        }
 
         if(userChoice == 'y'){
           isCPU = true;
@@ -952,7 +1057,7 @@ class clsGamestate{
         setState(1);
         updateUsers(); // calling when stage == 1;
         updateUsers(); // calling when stage == 2;
-        updateUsers();
+        updateUsers(); // calling when stage == 3;
       }
     }
 
@@ -976,6 +1081,7 @@ class clsGamestate{
           yToContinue();
         }
         setState(2);
+
       } else if(_state == 2){ // if stage is 'play' - cycle through users to choose target & attack;
         while(getActivePlayers() > 1){ // while there is more than 1 active player
           for(int i = 0; i < _users.size(); i++){ // for each user
@@ -983,7 +1089,7 @@ class clsGamestate{
                 roundEvents.push_back(setRed("!!! All of " + _users[i].getName() + "'s ships have been destroyed !!!"));
                 _users[i].setInactive();
 
-              } else if(_users[i].isActive()){ // if the player is active;
+              } else if(_users[i].isActive() && !_users[i].isCPU()){ // if the player is active & not a CPU player;
               pair <bool, int> foundUser;
               int targetId = 0;
 
@@ -1024,6 +1130,12 @@ class clsGamestate{
               getUserById(foundUser.second).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
               _users[i].viewBoard(getBoardSize().x, getBoardSize().y); // View current player board;
               yToContinue();
+
+            } else if(_users[i].isActive() && _users[i].isCPU()){ // is active & isCPU
+              Log(_users[i].getName() + "(CPU) is taking their turn");
+              // CPU player chooses target;
+              // CPU player chooses target coords;
+              yToContinue();
             }
           }
           ClearConsole();
@@ -1033,6 +1145,7 @@ class clsGamestate{
           yToContinue();
         }
         setState(3);
+
       } else if(_state == 3){ // if stage is 'winner' - display winner screen to remaining player(s);
         char input;
         
@@ -1055,7 +1168,7 @@ class clsGamestate{
 
     udtCoord selectTargetCoords(clsUser targetUser, int xSize, int ySize){
       udtCoord attackCoord;
-
+      
       do {
         if(!targetUser.validateOriginCoord(xSize, ySize, attackCoord.x) || !targetUser.validateOriginCoord(xSize, ySize, attackCoord.y) || !cin){ // only print here on 2rd execution of this loop
           cout << "\e[4F"; //move cursor up 4 lines;
@@ -1105,10 +1218,12 @@ class clsGamestate{
       Log("ID ║ Name");
       Log("═══╬════════════════════════════");
       for(int i = 0; i < _users.size(); i++){
+        string isCPU = _users[i].isCPU() ? "(CPU)" : "";
+
         if(getIntLength(i) == 2){
-          Log(setYellow(to_string(_users[i].getId())), " ║ " , _users[i].getName());
+          Log(setYellow(to_string(_users[i].getId())) + " ║ " + _users[i].getName() + " " + isCPU);
         } else {
-          Log(setYellow(to_string(_users[i].getId())), "  ║ " , _users[i].getName());
+          Log(setYellow(to_string(_users[i].getId())) + "  ║ " + _users[i].getName() + " " + isCPU);
         }
       }    
       Log("═══╩════════════════════════════");
@@ -1199,7 +1314,7 @@ int main(){
   clsGamestate* state; // set variable 'Gamestate' as a pointer;
   state = clsGamestate::getInstance(); // assign the instance of clsGamestate;
 
-  vector <clsShip> shipConfig;
+  // vector <clsShip> shipConfig;
 
   clsShip carrier("Aircraft Carrier", 5);
   clsShip battleship("Battleship", 4);
@@ -1207,26 +1322,26 @@ int main(){
   clsShip cruiser("Cruiser", 3);
   clsShip patrolBoat("Patrol Boat", 2);
 
-  shipConfig.push_back(patrolBoat);
+  // shipConfig.push_back(patrolBoat);
   // shipConfig.push_back(cruiser);
 
   // state -> registerShip(carrier); 
   // state -> registerShip(battleship); 
   // state -> registerShip(submarine); 
   // state -> registerShip(cruiser); 
-  // state -> registerShip(patrolBoat); 
+  state -> registerShip(patrolBoat); 
 
-  clsUser user1("Alex", 1, false, shipConfig);
-  clsUser user2("Sofia", 2, false, shipConfig);
-  state -> registerUser(user1);
-  state -> registerUser(user2);
+  // clsUser user1("Alex", 1, false, shipConfig);
+  // clsUser user2("Sofia", 2, false, shipConfig);
+  // state -> registerUser(user1);
+  // state -> registerUser(user2);
 
-  state -> setState(1);
-  state -> setBoardSize(10, 10);
+  // state -> setState(1);
+  // state -> setBoardSize(10, 10);
 
-  state -> updateUsers();
-  state -> updateUsers();
-  state -> updateUsers();
+  // state -> updateUsers();
+  // state -> updateUsers();
+  // state -> updateUsers();
 
-  // state -> startNewGame();
+  state -> startNewGame();
 }
