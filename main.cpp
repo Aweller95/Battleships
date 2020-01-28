@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include <ctime>
 #include <typeinfo>
 #include <limits>
 
@@ -42,8 +43,6 @@ struct udtCoord{
   int y;
 };
 
-#include "easyCPU.cpp" // includes struct for udtCoord
-
 vector <string> roundEvents;
 
 //UTILITIES CLASS
@@ -69,11 +68,16 @@ void Log(string message1 = "", string message2 = "", string message3 = ""){
 }
 
 int getIntLength(int i){ // TODO: can go in utils class
-      return trunc(log10(i)) + 1;
-      // using log10 -> returns the value y in base 10. 
-      // using trunc -> returns a rounded down result of the log10 function; 
-      // example: (log10(100) = 2) + 1 = 3 -> 100 is a 3 digit number;
-    }
+  return trunc(log10(i)) + 1;
+  // using log10 -> returns the value y in base 10. 
+  // using trunc -> returns a rounded down result of the log10 function; 
+  // example: (log10(100) = 2) + 1 = 3 -> 100 is a 3 digit number;
+}
+
+int rollDice(int mod){
+  int random_number = (rand() % mod) + 1;
+  return random_number;
+}
 
 void printRoundEvents(){
   Log("Round History");
@@ -291,22 +295,21 @@ void printBoardKey(){
 // Easy CPU Functions
 udtCoord cpuEasySelectCoords(int xSize, int ySize){
   udtCoord _tempCoord;
-  
-  //random x
-  //random y
 
-  _tempCoord.x = 5;
-  _tempCoord.y = 5;
-
+  _tempCoord.x = rollDice(xSize); //get a random number between 1 & xSize
+  _tempCoord.y = rollDice(ySize); //get a random number between 1 & ySize
   return _tempCoord;
 }
 
 char cpuEasySelectHeading(){
-  char heading = 'u';
+  int selected = rollDice(4); //get a random number inclusively between 1 & 4
 
-  //random heading u/d/l/r
-
-  return heading;
+  switch(selected){
+    case 1 : return 'u';
+    case 2 : return 'd';
+    case 3 : return 'l';
+    case 4 : return 'r';
+  }
 }
 ////
 
@@ -616,7 +619,7 @@ class clsUser{ //Observer
           cin >> x;
 
           while(!validateOriginCoord(xSize, ySize, x) || !cin){ //validate x coord
-            Log("Invalid " + setBrightGreen("X") + " coordinate entered, please enter a coordinate between 0, " ,to_string(xSize));
+            Log("Invalid " + setBrightGreen("X") + " coordinate entered, please enter a coordinate between 1, " ,to_string(xSize));
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             cin >> x;
@@ -626,7 +629,7 @@ class clsUser{ //Observer
           cin >> y;
 
           while(!validateOriginCoord(xSize, ySize, y) || !cin){ //validate y coord
-            Log("Invalid " + setCyan("Y") + " coordinate entered, please enter a coordinate between 0, " ,to_string(ySize));
+            Log("Invalid " + setCyan("Y") + " coordinate entered, please enter a coordinate between 1, " ,to_string(ySize));
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
             cin >> y;
@@ -639,7 +642,7 @@ class clsUser{ //Observer
             cin >> x;
 
             while(!validateOriginCoord(xSize, ySize, x) || !cin){ //validate x coord
-              Log("Invalid X coordinate entered, please enter a coordinate between 0, " ,to_string(xSize));
+              Log("Invalid X coordinate entered, please enter a coordinate between 1, " ,to_string(xSize));
               cin.clear();
               cin.ignore(numeric_limits<streamsize>::max(), '\n');
               cin >> x;
@@ -649,7 +652,7 @@ class clsUser{ //Observer
             cin >> y;
 
             while(!validateOriginCoord(xSize, ySize, y) || !cin){ //validate y coord
-              Log("Invalid Y coordinate entered, please enter a coordinate between 0, " ,to_string(ySize));
+              Log("Invalid Y coordinate entered, please enter a coordinate between 1, " ,to_string(ySize));
               cin.clear();
               cin.ignore(numeric_limits<streamsize>::max(), '\n');
               cin >> y;
@@ -726,19 +729,11 @@ class clsUser{ //Observer
 
           ClearConsole();
 
-          printOccupied(); //DEBUG
-
           Log("CPU PLACEMENT"); // DEBUG
-          yToContinue(); // DEBUG
 
           do{
-            // select random x & y coords -> validate coords 
-            Log("Generating random coords that do not collide with another ship...");//DEBUG
-            yToContinue();//DEBUG
-
-            _cpuCoords = cpuEasySelectCoords(xSize, ySize);
-
-          } while(checkCollision(_cpuCoords.x, _cpuCoords.y));
+            _cpuCoords = cpuEasySelectCoords(xSize, ySize); // select random x & y coords -> validate coords 
+          } while(checkCollision(_cpuCoords.x, _cpuCoords.y) || !validateOriginCoord(xSize, ySize, _cpuCoords.x) || !validateOriginCoord(xSize, ySize, _cpuCoords.x));
 
           Log("Coords generated: " + to_string(_cpuCoords.x) + " " + to_string(_cpuCoords.y)); // DEBUG
 
@@ -747,15 +742,9 @@ class clsUser{ //Observer
             string selected;        
             heading = cpuEasySelectHeading(); // Assign a random heading to the variable;
 
-            string debugmsg = "Heading generated = "; //DEBUG
-            debugmsg.push_back(heading); //DEBUG
-            Log(debugmsg); //DEBUG
-
             if(heading == 'r'){ // HORIZONTAL - HEADING RIGHT
               if(!(_cpuCoords.x + _ships[i].getLength() - 1 > xSize) && !checkCollision(_cpuCoords.x, _cpuCoords.y, heading, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
                 canPlace = true;
-                Log("Placing ship at " + to_string(_cpuCoords.x) + ", " + to_string(_cpuCoords.y) + ", heading " + heading);//DEBUG
-                yToContinue();
                 break; // using break here to prevent unnecesary error logging after successful placement;
               }
             }
@@ -763,8 +752,6 @@ class clsUser{ //Observer
             if(heading == 'l'){ // HORIZONTAL - HEADING LEFT
               if(!(_cpuCoords.x - _ships[i].getLength() < 0) && !checkCollision(_cpuCoords.x, _cpuCoords.y, heading, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
                 canPlace = true;
-                Log("Placing ship at " + to_string(_cpuCoords.x) + ", " + to_string(_cpuCoords.y) + ", heading " + heading);//DEBUG
-                yToContinue();
                 break;
               }
             } 
@@ -772,8 +759,6 @@ class clsUser{ //Observer
             if(heading == 'u'){ //VERTICAL - HEADING UP
               if(!(_cpuCoords.y + _ships[i].getLength() - 1 > ySize) && !checkCollision(_cpuCoords.x, _cpuCoords.y, heading, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
                 canPlace = true;
-                Log("Placing ship at " + to_string(_cpuCoords.x) + ", " + to_string(_cpuCoords.y) + ", heading " + heading);//DEBUG
-                yToContinue();
                 break;
               }
             }
@@ -781,30 +766,16 @@ class clsUser{ //Observer
             if(heading == 'd'){ //VERTICAL - HEADING DOWN
               if(!(_cpuCoords.y - _ships[i].getLength() < 0) && !checkCollision(_cpuCoords.x, _cpuCoords.y, heading, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
                 canPlace = true;
-                Log("Placing ship at " + to_string(_cpuCoords.x) + ", " + to_string(_cpuCoords.y) + ", heading " + heading);//DEBUG
-                yToContinue();
                 break;
               }
             }
           }
-          
-          Log("Logging values"); //DEBUG
-          cout << "x: " << x << endl; //DEBUG
-          cout << "_cpuCoords.x: " << _cpuCoords.x << endl; //DEBUG
-          cout << "y: " << y << endl; //DEBUG
-          cout << "_cpuCoords.y: " << _cpuCoords.y << endl; //DEBUG
-          cout << "xSize: " << xSize << endl; //DEBUG
-          cout << "ySize: " << ySize << endl; //DEBUG
-          cout << "heading: " << heading << endl; //DEBUG
 
-          _ships[i].updateBulkheads(_cpuCoords.x--, _cpuCoords.x--, xSize, ySize, heading); //update the currently selected ships bulkheads;
+          _ships[i].updateBulkheads(_cpuCoords.x, _cpuCoords.y, xSize, ySize, heading); //update the currently selected ships bulkheads;
           placeShip(_ships[i]); //Add the selected ships coords to the _occupied variable;
-
-          printOccupied();//DEBUG
 
           Log("DEBUG: VIEWING CPU PLAYER BOARD -> " + getName());//DEBUG
           viewBoard(xSize, ySize);//DEBUG
-          yToContinue();
         }
       }
     }
@@ -1311,6 +1282,7 @@ class clsGamestate{
 clsGamestate* clsGamestate::_inst = NULL;
 
 int main(){
+  srand(time(NULL)); // Seed random values generated with rand() with the current time;
   clsGamestate* state; // set variable 'Gamestate' as a pointer;
   state = clsGamestate::getInstance(); // assign the instance of clsGamestate;
 
