@@ -742,6 +742,10 @@ class clsUser{ //Observer
             string selected;        
             heading = cpuEasySelectHeading(); // Assign a random heading to the variable;
 
+            string msg = "Heading generated: ";// DEBUG
+            msg.push_back(heading); // DEBUG
+            Log(msg); // DEBUG
+
             if(heading == 'r'){ // HORIZONTAL - HEADING RIGHT
               if(!(_cpuCoords.x + _ships[i].getLength() - 1 > xSize) && !checkCollision(_cpuCoords.x, _cpuCoords.y, heading, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
                 canPlace = true;
@@ -1286,7 +1290,7 @@ int main(){
   clsGamestate* state; // set variable 'Gamestate' as a pointer;
   state = clsGamestate::getInstance(); // assign the instance of clsGamestate;
 
-  // vector <clsShip> shipConfig;
+  vector <clsShip> shipConfig;
 
   clsShip carrier("Aircraft Carrier", 5);
   clsShip battleship("Battleship", 4);
@@ -1294,26 +1298,36 @@ int main(){
   clsShip cruiser("Cruiser", 3);
   clsShip patrolBoat("Patrol Boat", 2);
 
-  // shipConfig.push_back(patrolBoat);
-  // shipConfig.push_back(cruiser);
+  shipConfig.push_back(carrier);
+  shipConfig.push_back(battleship);
+  shipConfig.push_back(submarine);
+  shipConfig.push_back(cruiser);
+  shipConfig.push_back(patrolBoat);
 
   // state -> registerShip(carrier); 
   // state -> registerShip(battleship); 
   // state -> registerShip(submarine); 
   // state -> registerShip(cruiser); 
-  state -> registerShip(patrolBoat); 
+  // state -> registerShip(patrolBoat); 
 
-  // clsUser user1("Alex", 1, false, shipConfig);
-  // clsUser user2("Sofia", 2, false, shipConfig);
-  // state -> registerUser(user1);
-  // state -> registerUser(user2);
+  clsUser user1("Alex", 1, true, shipConfig);
+  clsUser user2("Sofia", 2, true, shipConfig);
+  clsUser user3("Jimmy", 3, true, shipConfig);
+  clsUser user4("Tim", 4, true, shipConfig);
+  clsUser user5("Boz", 5, true, shipConfig);
 
-  // state -> setState(1);
-  // state -> setBoardSize(10, 10);
+  state -> registerUser(user1);
+  state -> registerUser(user2);
+  state -> registerUser(user3);
+  state -> registerUser(user4);
+  state -> registerUser(user5);
 
-  // state -> updateUsers();
-  // state -> updateUsers();
-  // state -> updateUsers();
+  state -> setState(1);
+  state -> setBoardSize(10, 30);
 
-  state -> startNewGame();
+  state -> updateUsers();
+  state -> updateUsers();
+  state -> updateUsers();
+
+  // state -> startNewGame();
 }
