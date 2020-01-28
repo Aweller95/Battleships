@@ -644,7 +644,11 @@ class clsUser{ //Observer
         cin >> direction;
 
         while((direction != 'u' && direction != 'd' && direction != 'l' && direction != 'r') || !cin){ //validate direction - if its not u/d/l/r or is invalid type...
-          Log("Please enter a valid heading (u/d/l/r)");
+          cout << "\e[2F"; //move cursor up 2 lines;
+          cout << "\e[0J"; // clear screen from cursor down;
+          Log("Please enter a " + setRed("valid") + " heading (u/d/l/r)");
+          cin.clear();
+          cin.ignore(numeric_limits<streamsize>::max(), '\n');
           cin >> direction;
         }
 
@@ -993,11 +997,11 @@ class clsGamestate{
               foundUser = checkUserExistsById(targetId);
 
               while(!cin || _users[i].getId() == targetId || !foundUser.first){// ask for a target id while the id is invalid / the id is of the current player / the type of input is invalid;
-                if(_users[i].getId() == targetId){
-                  Log("You cannot target yourself!");
-                }
+                cout << "\e[2F"; //move cursor up 4 lines;
+                cout << "\e[0J"; // clear screen from cursor down;
+                // Log();
+                Log(_users[i].getName() + ", enter a " + setRed("valid") + " user " + setYellow("ID"));
 
-                Log("Enter a valid user " + setYellow("ID"));
                 cin.clear();
                 cin.ignore(numeric_limits<streamsize>::max(), '\n');
                 cin >> targetId;
@@ -1060,7 +1064,8 @@ class clsGamestate{
           Log(setRed("!Please enter valid coordinates!"));
           cin.clear();
           cin.ignore(numeric_limits<streamsize>::max(), '\n');
-
+          
+          Log();
           Log("Enter the " + setBrightGreen("X") + " coordinate that you want to attack"); // convert to "do while"
           cin >> attackCoord.x;
 
@@ -1079,6 +1084,9 @@ class clsGamestate{
       } while(!targetUser.validateOriginCoord(xSize, ySize, attackCoord.x) || !targetUser.validateOriginCoord(xSize, ySize, attackCoord.y) || !cin); // check entered coords exist within the map;
 
       while(targetUser.checkCollision(attackCoord.x, attackCoord.y, true)){// while the attack coords have already been attacked OR the attack coords do not fit on the board -> ask for new coords
+        cout << "\e[4F"; //move cursor up 4 lines;
+        cout << "\e[0J"; // clear screen from cursor down;
+
         Log("This coordinate has already been attacked, please enter new coordinates");
 
         Log("Enter the " + setBrightGreen("X") + " coordinate that you want to attack");
