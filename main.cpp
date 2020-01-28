@@ -594,48 +594,65 @@ class clsUser{ //Observer
         Log("Enter " + setBrightGreen("X") + " coord");
         cin >> x;
 
-        while(!validateOriginCoord(xSize, ySize, x)){ //validate x coord
-          Log("Invalid X coordinate entered, please enter a coordinate between 0, " ,to_string(xSize));
+        while(!validateOriginCoord(xSize, ySize, x) || !cin){ //validate x coord
+          Log("Invalid " + setBrightGreen("X") + " coordinate entered, please enter a coordinate between 0, " ,to_string(xSize));
+          cin.clear();
+          cin.ignore(numeric_limits<streamsize>::max(), '\n');
           cin >> x;
         }
         
         Log("Enter " + setCyan("Y") + " coord");
         cin >> y;
 
-        while(!validateOriginCoord(xSize, ySize, y)){ //validate y coord
-          Log("Invalid Y coordinate entered, please enter a coordinate between 0, " ,to_string(ySize));
+        while(!validateOriginCoord(xSize, ySize, y) || !cin){ //validate y coord
+          Log("Invalid " + setCyan("Y") + " coordinate entered, please enter a coordinate between 0, " ,to_string(ySize));
+          cin.clear();
+          cin.ignore(numeric_limits<streamsize>::max(), '\n');
           cin >> y;
         }
 
         while(checkCollision(x, y)){ // checks if origin point collides with another ship
           Log("Placing your" + _ships[i].getName() + " here, will cause it to collide with another ship\n");
+
           Log("Please enter a new " + setBrightGreen("X") + " coordinate");
           cin >> x;
+
+          while(!validateOriginCoord(xSize, ySize, x) || !cin){ //validate x coord
+            Log("Invalid X coordinate entered, please enter a coordinate between 0, " ,to_string(xSize));
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cin >> x;
+          }
           
           Log("Please enter a new " + setCyan("Y") + " coordinate");
           cin >> y;
+
+          while(!validateOriginCoord(xSize, ySize, y) || !cin){ //validate y coord
+            Log("Invalid Y coordinate entered, please enter a coordinate between 0, " ,to_string(ySize));
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cin >> y;
+          }
         }
 
         ClearConsole();
         printPlacementTitle();
-        // Log(getName(), ", place your ", _ships[i].getName() + " (length: " + to_string(_ships[i].getLength()) + ")");
-        // Log();
         viewBoard(xSize, ySize, x, y);
         Log();
 
         Log("Enter heading, up, down, left, right (u/d/l/r)"); // get user to input direction
         cin >> direction;
 
-        while(direction != 'u' && direction != 'd' && direction != 'l' && direction != 'r' ){ //validate direction
+        while((direction != 'u' && direction != 'd' && direction != 'l' && direction != 'r') || !cin){ //validate direction - if its not u/d/l/r or is invalid type...
           Log("Please enter a valid heading (u/d/l/r)");
           cin >> direction;
         }
 
-        while(!canPlace){
+        while(!canPlace){ // validate heading
           string selected;
 
           if(direction == 'r'){ // HORIZONTAL - HEADING RIGHT
-            if(!(x + _ships[i].getLength() - 1 > xSize) && !checkCollision(x, y, direction, _ships[i].getLength())){ // check if the ship will go off of the map & if it will intersect with another ship
+            if(!(x + _ships[i].getLength() - 1 > xSize) && !checkCollision(x, y, direction, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
               canPlace = true;
               break; // using break here to prevent unnecesary error logging after successful placement;
             }
@@ -643,7 +660,7 @@ class clsUser{ //Observer
           }
 
           if(direction == 'l'){ // HORIZONTAL - HEADING LEFT
-            if(!(x - _ships[i].getLength() < 0) && !checkCollision(x, y, direction, _ships[i].getLength())){
+            if(!(x - _ships[i].getLength() < 0) && !checkCollision(x, y, direction, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
               canPlace = true;
               break;
             }
@@ -651,7 +668,7 @@ class clsUser{ //Observer
           } 
 
           if(direction == 'u'){ //VERTICAL - HEADING UP
-            if(!(y + _ships[i].getLength() - 1 > ySize) && !checkCollision(x, y, direction, _ships[i].getLength())){
+            if(!(y + _ships[i].getLength() - 1 > ySize) && !checkCollision(x, y, direction, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
               canPlace = true;
               break;
             }
@@ -659,7 +676,7 @@ class clsUser{ //Observer
           }
 
           if(direction == 'd'){ //VERTICAL - HEADING DOWN
-            if(!(y - _ships[i].getLength() < 0) && !checkCollision(x, y, direction, _ships[i].getLength())){
+            if(!(y - _ships[i].getLength() < 0) && !checkCollision(x, y, direction, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
               canPlace = true;
               break;
             }
