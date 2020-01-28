@@ -1,7 +1,9 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include<cmath>
+#include <cmath>
+#include <typeinfo>
+#include <limits>
 
 using namespace std;
 
@@ -283,6 +285,11 @@ void printBoardKey(){
   Log();
 }
 
+void eraseToEndofLine(int line){
+  cout << "\033[" + to_string(line) << endl;
+} 
+
+
 //SHIP CLASS
 class clsShip{
   public:
@@ -524,10 +531,7 @@ class clsUser{ //Observer
     }
 
     void viewBoard(int xSize, int ySize, int selectedX, int selectedY){ // view a players board with a point highlighted; using function overloading here to alter the behaviour of this func;
-      Log();
-      Log();
       Log("Your (", getName(), "'s) board");
-      Log();
 
       cout << "   ╔";
       for(int x = 1; x <= xSize * 2; x++){ // print x axis labels
@@ -583,9 +587,9 @@ class clsUser{ //Observer
         ClearConsole();
         printPlacementTitle();
 
+        viewBoard(xSize, ySize);
         Log(getName(), ", place your ", _ships[i].getName() + " (length: " + to_string(_ships[i].getLength()) + ")");
         Log();
-        viewBoard(xSize, ySize); // TODO: Prompt user to view board to prevent other users seeing it;
 
         Log("Enter " + setBrightGreen("X") + " coord");
         cin >> x;
@@ -671,7 +675,7 @@ class clsUser{ //Observer
         placeShip(_ships[i]); //Add the selected ships coords to the _occupied variable;
         ClearConsole();
         printPlacementTitle();
-        Log();
+        // Log();
         viewBoard(xSize, ySize);//View the board after placement for visual confirmation;
       }
     }
@@ -694,12 +698,13 @@ class clsUser{ //Observer
     }
 
     void updateShips(int x, int y){
-      roundEvents.push_back(getName() + " was attacked at: " + to_string(x) + ", " + to_string(y)); // add the attacked coord to the message queue;
+      bool missed = true;
 
       for(int i = 0; i < _ships.size(); i++){ // for each registered ship
         for(int j = 0; j < _ships[i].getBulkheads().size(); j++){ //for each bulkhead
           if(x == _ships[i].getBulkheads()[j].x && y == _ships[i].getBulkheads()[j].y){ // if the passed in coords match a bulkhead;
-            roundEvents.push_back(getName() + "'s " + _ships[i].getName() + " has been " + setYellow("hit!")); // If a ship has been hit, add it to the message queue;
+            missed = false;
+            roundEvents.push_back(getName() + "'s " + _ships[i].getName() + " has been " + setRed("hit!")); // If a ship has been hit, add it to the message queue;
             _ships[i].getBulkheads()[j].hit = true; // set the current bulkheads status hit = true;
             _ships[i].decrementHealth(); // decrease the current ships health by 1;
           }
@@ -709,6 +714,9 @@ class clsUser{ //Observer
           _ships[i].setAnnounced();
           roundEvents.push_back(getName() + "'s " + _ships[i].getName() + " has been " + setRed("destroyed!")); // Add this to the message queue
         }
+      } 
+      if(missed){
+        roundEvents.push_back(getName() + " was attacked at: " + to_string(x) + ", " + to_string(y) + " but the shot " + setYellow("missed")); // add the attacked coord to the message queue;
       }
     }
 
@@ -716,7 +724,7 @@ class clsUser{ //Observer
       udtCoord coordinate;
 
       //iterate over ships - check for matching coords - set 'hit' to true;
-      updateShips(x, y); // TODO:  Might not work; -> abstract adding to event queue; - updateShips() should be void;
+      updateShips(x, y);
 
       coordinate.x = x; // assign the param values to a coordinate
       coordinate.y = y;
@@ -953,8 +961,7 @@ class clsGamestate{
             if(_users[i].calculateHealth() == 0){
                 roundEvents.push_back(setRed("!!! All of " + _users[i].getName() + "'s ships have been destroyed !!!"));
                 _users[i].setInactive();
-                yToContinue();
-                
+
               } else if(_users[i].isActive()){ // if the player is active;
               pair <bool, int> foundUser;
               int targetId = 0;
@@ -963,24 +970,30 @@ class clsGamestate{
               printBattleTitle();
               printAllUsers(_users[i].getId());
 
-              do {
-                if(targetId){//if target Id has a value, display the error message;
-                  Log();
-                  Log("Please enter a valid userId");
-                  Log();
+              // VALIDATE PLAYER ID INPUT
+              Log(_users[i].getName(), ", enter the " + setYellow("ID") + " of the player you want to attack: ");
+              cin >> targetId;
+              foundUser = checkUserExistsById(targetId);
+
+              while(!cin || _users[i].getId() == targetId || !foundUser.first){// ask for a target id while the id is invalid / the id is of the current player / the type of input is invalid;
+                if(_users[i].getId() == targetId){
+                  Log("You cannot target yourself!");
                 }
-                Log();
-                Log(_users[i].getName(), ", enter the " + setYellow("ID") + " of the player you want to attack: ");
+
+                Log("Enter a valid user " + setYellow("ID"));
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
                 cin >> targetId;
                 foundUser = checkUserExistsById(targetId);
-
-              } while(!foundUser.first || _users[i].getId() == targetId); // ask for a target id while the id is invalid or the id is of the current player;
+              }
+              ////
 
               ClearConsole();
               printBattleTitle();
 
               getUserById(foundUser.second).viewBoard(getBoardSize().x, getBoardSize().y, true); // view targets board;
               _users[i].viewBoard(getBoardSize().x, getBoardSize().y); // View current player board;
+              printBoardKey();
 
               udtCoord validatedAttackCoord = selectTargetCoords(getUserById(foundUser.second), getBoardSize().x, getBoardSize().y); // get user to select attack coords;
               getUserById(foundUser.second).addAttacked(validatedAttackCoord.x, validatedAttackCoord.y); // add the validated attack coordinate to the targets board;
@@ -1023,19 +1036,30 @@ class clsGamestate{
       udtCoord attackCoord;
 
       do {
-        if(!attackCoord.x && !attackCoord.y){
-          Log("Please enter valid attack coordinates");
+        if(!targetUser.validateOriginCoord(xSize, ySize, attackCoord.x) || !targetUser.validateOriginCoord(xSize, ySize, attackCoord.y) || !cin){ // only print here on 2rd execution of this loop
+          cout << "\e[4F"; //move cursor up 4 lines;
+          cout << "\e[0J"; // clear screen from cursor down;
+
+          Log(setRed("!Please enter valid coordinates!"));
+          cin.clear();
+          cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+          Log("Enter the " + setBrightGreen("X") + " coordinate that you want to attack"); // convert to "do while"
+          cin >> attackCoord.x;
+
+          Log("Enter the " + setCyan("Y") + " coordinate that you want to attack");
+          cin >> attackCoord.y;
+        } else {
+          cin.clear();
+          cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+          Log("Enter the " + setBrightGreen("X") + " coordinate that you want to attack"); // convert to "do while"
+          cin >> attackCoord.x;
+
+          Log("Enter the " + setCyan("Y") + " coordinate that you want to attack");
+          cin >> attackCoord.y;
         }
-
-        printBoardKey();
-
-        Log("Enter the " + setBrightGreen("X") + " coordinate that you want to attack"); // convert to "do while"
-        cin >> attackCoord.x;
-
-        Log("Enter the " + setCyan("Y") + " coordinate that you want to attack");
-        cin >> attackCoord.y;
-
-      } while(!targetUser.validateOriginCoord(xSize, ySize, attackCoord.x) || !targetUser.validateOriginCoord(xSize, ySize, attackCoord.y)); // check entered coords exist within the map;
+      } while(!targetUser.validateOriginCoord(xSize, ySize, attackCoord.x) || !targetUser.validateOriginCoord(xSize, ySize, attackCoord.y) || !cin); // check entered coords exist within the map;
 
       while(targetUser.checkCollision(attackCoord.x, attackCoord.y, true)){// while the attack coords have already been attacked OR the attack coords do not fit on the board -> ask for new coords
         Log("This coordinate has already been attacked, please enter new coordinates");
@@ -1152,9 +1176,9 @@ int main(){
 
   vector <clsShip> shipConfig;
 
-  // clsShip carrier("Aircraft Carrier", 5);
-  // clsShip battleship("Battleship", 4);
-  // clsShip submarine("Submarine", 3);
+  clsShip carrier("Aircraft Carrier", 5);
+  clsShip battleship("Battleship", 4);
+  clsShip submarine("Submarine", 3);
   clsShip cruiser("Cruiser", 3);
   clsShip patrolBoat("Patrol Boat", 2);
 
