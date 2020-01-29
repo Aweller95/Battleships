@@ -115,6 +115,16 @@ string setBrightGreen(string message){
   return "\x1B[92m" + message + "\033[0m";
 }
 
+string setBrightGreen(char letter){
+  string result = "\x1B[92m";
+  string escSeq1 = "\033[0m";
+
+  result.push_back(letter);
+
+
+  return result + escSeq1;
+}
+
 string setCyan(string message){
   return "\x1B[96m" + message + "\033[0m";
 }
@@ -497,7 +507,7 @@ class clsUser{ //Observer
       }
 
       cout << "   ╔";
-      for(int x = 1; x <= xSize * 2; x++){ // print x axis labels
+      for(int x = 1; x <= xSize * 2; x++){ // print gameboard border graphics
         cout << "═";
       }
       cout << "╗";
@@ -535,19 +545,28 @@ class clsUser{ //Observer
             cout << "▬ ";
           }
         }
-        // cout << "║";  
         Log();
       }
 
       cout << "   ╚";
-      for(int x = 1; x <= xSize * 2; x++){ // print x axis labels
+      for(int x = 1; x <= xSize * 2; x++){ // print gameboard graphics
         cout << "═";
       }
       cout << "╝";
       Log();
-      cout << "     ";
-      for(int x = 1; x <= xSize; x++){ // print x axis labels
-        cout << setBrightGreen(to_string(x)) << " ";
+
+      cout << "     "; //5 chars
+      for(int x = 1; x <= xSize; x++){ // print x axis label;
+        if(getIntLength(x) == 2){ //if x is a 2 digit number...
+          string strx = to_string(x);//store x as a string;
+
+          cout << setBrightGreen(strx[0]); //print first digit of x;
+          cout << "\033[1D" << "\033[1B";//move cursor down 1 row & back 1 column;
+          cout << setBrightGreen(strx[1]); //print 2nd digit of x;
+          cout << "\033[1C" << "\033[1A";//move cursor forward & up 1 space
+        } else {
+          cout << setBrightGreen(to_string(x)) << " ";
+        }
       }
       Log();
       Log();
@@ -595,7 +614,16 @@ class clsUser{ //Observer
       Log();
       cout << "     ";
       for(int x = 1; x <= xSize; x++){ // print x axis labels
-        cout << setBrightGreen(to_string(x)) << " ";
+        if(getIntLength(x) == 2){ //if x is a 2 digit number...
+          string strx = to_string(x);//store x as a string;
+
+          cout << setBrightGreen(strx[0]); //print first digit of x;
+          cout << "\033[1D" << "\033[1B";//move cursor down 1 row & back 1 column;
+          cout << setBrightGreen(strx[1]); //print 2nd digit of x;
+          cout << "\033[1C" << "\033[1A";//move cursor forward & up 1 space
+        } else {
+          cout << setBrightGreen(to_string(x)) << " ";
+        }
       }
       Log();
       Log();
@@ -1323,7 +1351,7 @@ int main(){
   state -> registerUser(user5);
 
   state -> setState(1);
-  state -> setBoardSize(10, 30);
+  state -> setBoardSize(12, 12);
 
   state -> updateUsers();
   state -> updateUsers();
