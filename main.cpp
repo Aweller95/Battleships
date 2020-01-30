@@ -5,6 +5,8 @@
 #include <ctime>
 #include <typeinfo>
 #include <limits>
+#include <unistd.h>
+
 
 using namespace std;
 
@@ -75,17 +77,19 @@ int getIntLength(int i){ // TODO: can go in utils class
 }
 
 int rollDice(int mod){
-  int random_number = (rand() % mod) + 1;
+  int random_number = (rand() % mod) + 1; // call the rand() function to get a random number, the param 'mod' is then used to calculate the modulus of the result + 1; if mod = 10, the random number will be between 1 & 10;
   return random_number;
 }
 
 void printRoundEvents(){
   Log("Round History");
   Log("________________________________");
+  Log("════════════════════════════════");
   for(int i = 0; i < roundEvents.size(); i++){
     cout << to_string(i+1) + ". " << roundEvents[i] << "\n";
   }
   Log("________________________________");
+  Log("════════════════════════════════");
 }
 
 void yToContinue(){
@@ -98,9 +102,8 @@ void yToContinue(){
 }
 
 void enterToContinue(){
-  do {
-  cout << '\n' << "Press enter to start...";
-  } while (cin.get() != '\n');
+  Log("Press enter to continue...");
+  cin.ignore();
 }
 
 void printRed(string message){
@@ -268,6 +271,28 @@ void ClearConsole(){
   cout << "\033[2J\033[0;0H"; // escape sequence that clears the console;
 }
 
+void progressBar(){
+  float progress = 0.0;
+  
+  while (progress < 1.0) {
+      int barWidth = 70;
+
+      cout << "[";
+      int pos = barWidth * progress;
+      
+      for (int i = 0; i < barWidth; ++i) {
+          if (i < pos) cout << "=";
+          else if (i == pos) cout << ">";
+          else cout << " ";
+      }
+      cout << "] " << int(progress * 100.0) << " %\r";
+      cout.flush();
+
+      progress += 0.16; // for demonstration only
+  }
+  cout << endl;
+}
+
 string cleanString(string text){
   string _local = text;
   cout << endl << "BEFORE: [" <<_local << "]\n";//TODO: remove this
@@ -320,6 +345,18 @@ char cpuEasySelectHeading(){
     case 3 : return 'l';
     case 4 : return 'r';
   }
+}
+
+int cpuSelectRandomTarget(int activePlayerCount, int userIdIgnore){
+  int randId;
+
+  do{
+    randId = rollDice(activePlayerCount);
+    cout << "randId = " << randId << endl;
+  } while(randId == userIdIgnore);
+
+  cout << "randId: " << randId << ", ignoreId: " << userIdIgnore << endl;
+  return randId;
 }
 ////
 
@@ -664,7 +701,7 @@ class clsUser{ //Observer
           }
 
           while(checkCollision(x, y)){ // checks if origin point collides with another ship
-            Log("Placing your" + _ships[i].getName() + " here, will cause it to collide with another ship\n");
+            Log("Placing your " + _ships[i].getName() + " here, will cause it to collide with another ship\n");
 
             Log("Please enter a new " + setBrightGreen("X") + " coordinate");
             cin >> x;
@@ -757,22 +794,22 @@ class clsUser{ //Observer
 
           ClearConsole();
 
-          Log("CPU PLACEMENT"); // DEBUG
+          // Log("CPU PLACEMENT"); // DEBUG
 
           do{
             _cpuCoords = cpuEasySelectCoords(xSize, ySize); // select random x & y coords -> validate coords 
           } while(checkCollision(_cpuCoords.x, _cpuCoords.y) || !validateOriginCoord(xSize, ySize, _cpuCoords.x) || !validateOriginCoord(xSize, ySize, _cpuCoords.x));
 
-          Log("Coords generated: " + to_string(_cpuCoords.x) + " " + to_string(_cpuCoords.y)); // DEBUG
+          // Log("Coords generated: " + to_string(_cpuCoords.x) + " " + to_string(_cpuCoords.y)); // DEBUG
 
           //select a random heading
           while(!canPlace){ // validate heading
             string selected;        
             heading = cpuEasySelectHeading(); // Assign a random heading to the variable;
 
-            string msg = "Heading generated: ";// DEBUG
-            msg.push_back(heading); // DEBUG
-            Log(msg); // DEBUG
+            // string msg = "Heading generated: ";// DEBUG
+            // msg.push_back(heading); // DEBUG
+            // Log(msg); // DEBUG
 
             if(heading == 'r'){ // HORIZONTAL - HEADING RIGHT
               if(!(_cpuCoords.x + _ships[i].getLength() - 1 > xSize) && !checkCollision(_cpuCoords.x, _cpuCoords.y, heading, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
@@ -806,8 +843,8 @@ class clsUser{ //Observer
           _ships[i].updateBulkheads(_cpuCoords.x, _cpuCoords.y, xSize, ySize, heading); //update the currently selected ships bulkheads;
           placeShip(_ships[i]); //Add the selected ships coords to the _occupied variable;
 
-          Log("DEBUG: VIEWING CPU PLAYER BOARD -> " + getName());//DEBUG
-          viewBoard(xSize, ySize);//DEBUG
+          // Log("DEBUG: VIEWING CPU PLAYER BOARD -> " + getName());//DEBUG
+          // viewBoard(xSize, ySize);//DEBUG
         }
       }
     }
@@ -898,7 +935,7 @@ class clsUser{ //Observer
       Log();
     }
 
-    bool isCPU(){ //DEBUG FUNC
+    bool isCPU(){
       return _cpu;
     }
 
@@ -1079,18 +1116,21 @@ class clsGamestate{
       if(_state == 1){ // if stage is 'placement' - get players to place ships;
         for(int i = 0; i < _users.size(); i++){
           _users[i].placeFleet(getBoardSize().x, getBoardSize().y); // get user to place their boats;
-          Log("Placement complete...");
-          Log();
-          yToContinue();
+          
+          if(!_users[i].isCPU()){
+            Log("Placement complete...");
+            Log();
+            enterToContinue();
+          }
         }
         setState(2);
 
       } else if(_state == 2){ // if stage is 'play' - cycle through users to choose target & attack;
         while(getActivePlayers() > 1){ // while there is more than 1 active player
           for(int i = 0; i < _users.size(); i++){ // for each user
-            if(_users[i].calculateHealth() == 0){
-                roundEvents.push_back(setRed("!!! All of " + _users[i].getName() + "'s ships have been destroyed !!!"));
+            if(_users[i].calculateHealth() == 0){ // if the user is dead;
                 _users[i].setInactive();
+                roundEvents.push_back(setRed("!!! All of " + _users[i].getName() + "'s ships have been destroyed !!!"));
 
               } else if(_users[i].isActive() && !_users[i].isCPU()){ // if the player is active & not a CPU player;
               pair <bool, int> foundUser;
@@ -1132,20 +1172,50 @@ class clsGamestate{
               printBattleTitle();
               getUserById(foundUser.second).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
               _users[i].viewBoard(getBoardSize().x, getBoardSize().y); // View current player board;
-              yToContinue();
+              enterToContinue();
+              
 
             } else if(_users[i].isActive() && _users[i].isCPU()){ // is active & isCPU
-              Log(_users[i].getName() + "(CPU) is taking their turn");
+              int targetId = cpuSelectRandomTarget(getActivePlayers(), _users[i].getId()); // generate a random target
+              int targetIndex = checkUserExistsById(targetId).second; //find the user in _users - return the index of the found user in _users;
+              udtCoord attackCoord;
+
+              ClearConsole();
+              printBattleTitle();
+
               // CPU player chooses target;
+              getUserById(targetIndex).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board before attacking;
+              Log(_users[i].getName() + " is targeting " + getUserById(targetIndex).getName());
+              // enterToContinue();// CHANGE TO WAIT
+              progressBar();
+              sleep(2);
+
+
               // CPU player chooses target coords;
-              yToContinue();
+              do {
+              attackCoord = cpuEasySelectCoords(getBoardSize().x, getBoardSize().y); // generate random attack coords;
+              } while(!getUserById(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, attackCoord.x) || //if x coord..
+                      !getUserById(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, attackCoord.y) || //or y coord is invalid
+                      getUserById(targetIndex).checkCollision(attackCoord.x, attackCoord.y, true)   //or the attack coord has already been attacked 
+                    );
+
+              Log(_users[i].getName() + " is attacking " + getUserById(targetIndex).getName() + " at: " + to_string(attackCoord.x) + ", " + to_string(attackCoord.y)); // DEBUG
+              Log();
+
+              getUserById(targetIndex).addAttacked(attackCoord.x, attackCoord.y); // add the validated attack coordinate to the targets board;
+
+              ClearConsole();
+              printBattleTitle();
+              getUserById(targetIndex).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
+
+              enterToContinue(); //TODO: CHANGE TO WAIT
             }
           }
           ClearConsole();
           printRoundOverTitle();
           printRoundEvents();
           roundEvents.clear();
-          yToContinue();
+          enterToContinue();
         }
         setState(3);
 
@@ -1187,7 +1257,7 @@ class clsGamestate{
 
           Log("Enter the " + setCyan("Y") + " coordinate that you want to attack");
           cin >> attackCoord.y;
-        } else {
+        } else { // run this block first
           cin.clear();
           cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
@@ -1338,20 +1408,20 @@ int main(){
   // state -> registerShip(cruiser); 
   // state -> registerShip(patrolBoat); 
 
-  clsUser user1("Alex", 1, true, shipConfig);
-  clsUser user2("Sofia", 2, true, shipConfig);
-  clsUser user3("Jimmy", 3, true, shipConfig);
-  clsUser user4("Tim", 4, true, shipConfig);
-  clsUser user5("Boz", 5, true, shipConfig);
+  // clsUser user1("Alex", 1, false, shipConfig);
+  clsUser user2("Sofia", 1, true, shipConfig);
+  clsUser user3("Jimmy", 2, true, shipConfig);
+  clsUser user4("Tim", 3, true, shipConfig);
+  clsUser user5("Boz", 4, true, shipConfig);
 
-  state -> registerUser(user1);
+  // state -> registerUser(user1);
   state -> registerUser(user2);
   state -> registerUser(user3);
   state -> registerUser(user4);
   state -> registerUser(user5);
 
   state -> setState(1);
-  state -> setBoardSize(12, 12);
+  state -> setBoardSize(10, 10);
 
   state -> updateUsers();
   state -> updateUsers();
