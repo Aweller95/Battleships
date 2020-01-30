@@ -271,26 +271,30 @@ void ClearConsole(){
   cout << "\033[2J\033[0;0H"; // escape sequence that clears the console;
 }
 
-void progressBar(){
+void progressBar(int width){
   float progress = 0.0;
-  
-  while (progress < 1.0) {
-      int barWidth = 70;
 
-      cout << "[";
+  cout << "\e[?25l"; //Hide the cursor;
+  
+  while (progress < 1.01) {
+      int barWidth = width;
+
+      cout << setBrightGreen("[");
       int pos = barWidth * progress;
       
       for (int i = 0; i < barWidth; ++i) {
-          if (i < pos) cout << "=";
-          else if (i == pos) cout << ">";
+          if (i < pos) cout << setGreen("=");
+          else if (i == pos) cout << setGreen(">");
           else cout << " ";
       }
-      cout << "] " << int(progress * 100.0) << " %\r";
+      cout << setBrightGreen("] ") << int(progress * 100.0) << " %\r";
+      usleep(120000);//wait in microseconds
       cout.flush();
 
-      progress += 0.16; // for demonstration only
+      progress += 0.1;
   }
   cout << endl;
+  cout << "\e[?25h"; // show the cursor
 }
 
 string cleanString(string text){
@@ -529,10 +533,19 @@ class clsUser{ //Observer
       return false;
     }
 
-    bool validateOriginCoord(int xSize, int ySize, int point){
-      if(point > xSize || point < 1 || point > ySize){
-        return false;
+    bool validateOriginCoord(int xSize, int ySize, int point, char axis){
+      if(axis == 'x'){
+        if(point > xSize || point < 1){
+          return false;
+        }
       }
+
+      if(axis == 'y'){
+        if(point > ySize || point < 1){
+          return false;
+        }
+      }
+
       return true;
     }
 
@@ -683,7 +696,7 @@ class clsUser{ //Observer
           Log("Enter " + setBrightGreen("X") + " coord");
           cin >> x;
 
-          while(!validateOriginCoord(xSize, ySize, x) || !cin){ //validate x coord
+          while(!validateOriginCoord(xSize, ySize, x, 'x') || !cin){ //validate x coord
             Log("Invalid " + setBrightGreen("X") + " coordinate entered, please enter a coordinate between 1, " ,to_string(xSize));
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -693,7 +706,7 @@ class clsUser{ //Observer
           Log("Enter " + setCyan("Y") + " coord");
           cin >> y;
 
-          while(!validateOriginCoord(xSize, ySize, y) || !cin){ //validate y coord
+          while(!validateOriginCoord(xSize, ySize, y, 'y') || !cin){ //validate y coord
             Log("Invalid " + setCyan("Y") + " coordinate entered, please enter a coordinate between 1, " ,to_string(ySize));
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -706,7 +719,7 @@ class clsUser{ //Observer
             Log("Please enter a new " + setBrightGreen("X") + " coordinate");
             cin >> x;
 
-            while(!validateOriginCoord(xSize, ySize, x) || !cin){ //validate x coord
+            while(!validateOriginCoord(xSize, ySize, x, 'x') || !cin){ //validate x coord
               Log("Invalid X coordinate entered, please enter a coordinate between 1, " ,to_string(xSize));
               cin.clear();
               cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -716,7 +729,7 @@ class clsUser{ //Observer
             Log("Please enter a new " + setCyan("Y") + " coordinate");
             cin >> y;
 
-            while(!validateOriginCoord(xSize, ySize, y) || !cin){ //validate y coord
+            while(!validateOriginCoord(xSize, ySize, y, 'y') || !cin){ //validate y coord
               Log("Invalid Y coordinate entered, please enter a coordinate between 1, " ,to_string(ySize));
               cin.clear();
               cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -792,24 +805,16 @@ class clsUser{ //Observer
           udtCoord _cpuCoords;
           char heading;
 
-          ClearConsole();
-
-          // Log("CPU PLACEMENT"); // DEBUG
+          // ClearConsole();
 
           do{
             _cpuCoords = cpuEasySelectCoords(xSize, ySize); // select random x & y coords -> validate coords 
-          } while(checkCollision(_cpuCoords.x, _cpuCoords.y) || !validateOriginCoord(xSize, ySize, _cpuCoords.x) || !validateOriginCoord(xSize, ySize, _cpuCoords.x));
-
-          // Log("Coords generated: " + to_string(_cpuCoords.x) + " " + to_string(_cpuCoords.y)); // DEBUG
+          } while(checkCollision(_cpuCoords.x, _cpuCoords.y) || !validateOriginCoord(xSize, ySize, _cpuCoords.x, 'x') || !validateOriginCoord(xSize, ySize, _cpuCoords.x, 'x'));
 
           //select a random heading
           while(!canPlace){ // validate heading
             string selected;        
             heading = cpuEasySelectHeading(); // Assign a random heading to the variable;
-
-            // string msg = "Heading generated: ";// DEBUG
-            // msg.push_back(heading); // DEBUG
-            // Log(msg); // DEBUG
 
             if(heading == 'r'){ // HORIZONTAL - HEADING RIGHT
               if(!(_cpuCoords.x + _ships[i].getLength() - 1 > xSize) && !checkCollision(_cpuCoords.x, _cpuCoords.y, heading, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
@@ -842,11 +847,9 @@ class clsUser{ //Observer
 
           _ships[i].updateBulkheads(_cpuCoords.x, _cpuCoords.y, xSize, ySize, heading); //update the currently selected ships bulkheads;
           placeShip(_ships[i]); //Add the selected ships coords to the _occupied variable;
-
-          // Log("DEBUG: VIEWING CPU PLAYER BOARD -> " + getName());//DEBUG
-          // viewBoard(xSize, ySize);//DEBUG
         }
       }
+      if(!(isCPU())) yToContinue();; //not working
     }
     
     void placeShip(clsShip ship){
@@ -1116,15 +1119,9 @@ class clsGamestate{
       if(_state == 1){ // if stage is 'placement' - get players to place ships;
         for(int i = 0; i < _users.size(); i++){
           _users[i].placeFleet(getBoardSize().x, getBoardSize().y); // get user to place their boats;
-          
-          if(!_users[i].isCPU()){
-            Log("Placement complete...");
-            Log();
-            enterToContinue();
-          }
+          // Log(_users[i].getName() + " has finished placing their ships");
         }
         setState(2);
-
       } else if(_state == 2){ // if stage is 'play' - cycle through users to choose target & attack;
         while(getActivePlayers() > 1){ // while there is more than 1 active player
           for(int i = 0; i < _users.size(); i++){ // for each user
@@ -1141,7 +1138,8 @@ class clsGamestate{
               printAllUsers(_users[i].getId());
 
               // VALIDATE PLAYER ID INPUT
-              Log(_users[i].getName(), ", enter the " + setYellow("ID") + " of the player you want to attack: ");
+              Log();
+              Log(setGreen(_users[i].getName()), ", enter the " + setYellow("ID") + " of the player you want to attack: ");
               cin >> targetId;
               foundUser = checkUserExistsById(targetId);
 
@@ -1170,10 +1168,13 @@ class clsGamestate{
               
               ClearConsole();
               printBattleTitle();
+
               getUserById(foundUser.second).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
               _users[i].viewBoard(getBoardSize().x, getBoardSize().y); // View current player board;
-              enterToContinue();
-              
+              printBoardKey();
+
+              // enterToContinue();
+              yToContinue();
 
             } else if(_users[i].isActive() && _users[i].isCPU()){ // is active & isCPU
               int targetId = cpuSelectRandomTarget(getActivePlayers(), _users[i].getId()); // generate a random target
@@ -1185,32 +1186,34 @@ class clsGamestate{
 
               // CPU player chooses target;
               getUserById(targetIndex).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board before attacking;
-              Log(_users[i].getName() + " is targeting " + getUserById(targetIndex).getName());
-              // enterToContinue();// CHANGE TO WAIT
-              progressBar();
-              sleep(2);
-
+              Log(setGreen(_users[i].getName()) + " is targeting " + setRed(getUserById(targetIndex).getName()));
+              Log();
+              Log("Thinking. . .");
+              progressBar((getBoardSize().x) * 2);
 
               // CPU player chooses target coords;
               do {
               attackCoord = cpuEasySelectCoords(getBoardSize().x, getBoardSize().y); // generate random attack coords;
-              } while(!getUserById(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, attackCoord.x) || //if x coord..
-                      !getUserById(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, attackCoord.y) || //or y coord is invalid
+              } while(!getUserById(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, attackCoord.x, 'x') || //if x coord..
+                      !getUserById(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, attackCoord.y, 'y') || //or y coord is invalid
                       getUserById(targetIndex).checkCollision(attackCoord.x, attackCoord.y, true)   //or the attack coord has already been attacked 
                     );
-
-              Log(_users[i].getName() + " is attacking " + getUserById(targetIndex).getName() + " at: " + to_string(attackCoord.x) + ", " + to_string(attackCoord.y)); // DEBUG
-              Log();
 
               getUserById(targetIndex).addAttacked(attackCoord.x, attackCoord.y); // add the validated attack coordinate to the targets board;
 
               ClearConsole();
               printBattleTitle();
+              
               getUserById(targetIndex).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
+              // sleep(1);
 
-              enterToContinue(); //TODO: CHANGE TO WAIT
+              Log(setYellow(_users[i].getName()) + " attacked " + setRed(getUserById(targetIndex).getName()) + " at: " + to_string(attackCoord.x) + ", " + to_string(attackCoord.y) + "\n");
+
+              // enterToContinue();
+              yToContinue();
             }
           }
+          //End of round
           ClearConsole();
           printRoundOverTitle();
           printRoundEvents();
@@ -1243,7 +1246,7 @@ class clsGamestate{
       udtCoord attackCoord;
       
       do {
-        if(!targetUser.validateOriginCoord(xSize, ySize, attackCoord.x) || !targetUser.validateOriginCoord(xSize, ySize, attackCoord.y) || !cin){ // only print here on 2rd execution of this loop
+        if(!targetUser.validateOriginCoord(xSize, ySize, attackCoord.x, 'x') || !targetUser.validateOriginCoord(xSize, ySize, attackCoord.y, 'y') || !cin){ // only print here on 2rd execution of this loop
           cout << "\e[4F"; //move cursor up 4 lines;
           cout << "\e[0J"; // clear screen from cursor down;
 
@@ -1267,7 +1270,7 @@ class clsGamestate{
           Log("Enter the " + setCyan("Y") + " coordinate that you want to attack");
           cin >> attackCoord.y;
         }
-      } while(!targetUser.validateOriginCoord(xSize, ySize, attackCoord.x) || !targetUser.validateOriginCoord(xSize, ySize, attackCoord.y) || !cin); // check entered coords exist within the map;
+      } while(!targetUser.validateOriginCoord(xSize, ySize, attackCoord.x, 'x') || !targetUser.validateOriginCoord(xSize, ySize, attackCoord.y, 'y') || !cin); // check entered coords exist within the map;
 
       while(targetUser.checkCollision(attackCoord.x, attackCoord.y, true)){// while the attack coords have already been attacked OR the attack coords do not fit on the board -> ask for new coords
         cout << "\e[4F"; //move cursor up 4 lines;
@@ -1398,9 +1401,9 @@ int main(){
 
   shipConfig.push_back(carrier);
   shipConfig.push_back(battleship);
-  shipConfig.push_back(submarine);
-  shipConfig.push_back(cruiser);
-  shipConfig.push_back(patrolBoat);
+  // shipConfig.push_back(submarine);
+  // shipConfig.push_back(cruiser);
+  // shipConfig.push_back(patrolBoat);
 
   // state -> registerShip(carrier); 
   // state -> registerShip(battleship); 
@@ -1408,17 +1411,17 @@ int main(){
   // state -> registerShip(cruiser); 
   // state -> registerShip(patrolBoat); 
 
-  // clsUser user1("Alex", 1, false, shipConfig);
-  clsUser user2("Sofia", 1, true, shipConfig);
-  clsUser user3("Jimmy", 2, true, shipConfig);
-  clsUser user4("Tim", 3, true, shipConfig);
-  clsUser user5("Boz", 4, true, shipConfig);
+  clsUser user1("Alex", 1, false, shipConfig);
+  clsUser user2("Sofia", 2, true, shipConfig);
+  clsUser user3("Jimmy", 3, true, shipConfig);
+  clsUser user4("Tim", 4, true, shipConfig);
+  clsUser user5("Boz", 5, true, shipConfig);
 
-  // state -> registerUser(user1);
+  state -> registerUser(user1);
   state -> registerUser(user2);
-  state -> registerUser(user3);
-  state -> registerUser(user4);
-  state -> registerUser(user5);
+  // state -> registerUser(user3);
+  // state -> registerUser(user4);
+  // state -> registerUser(user5);
 
   state -> setState(1);
   state -> setBoardSize(10, 10);
