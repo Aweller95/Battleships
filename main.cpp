@@ -1,4 +1,9 @@
-#include <iostream>
+y
+y
+yy
+y
+y
+y#include <iostream>
 #include <string>
 #include <vector>
 #include <cmath>
@@ -291,7 +296,7 @@ void progressBar(int width){
       usleep(120000);//wait in microseconds
       cout.flush();
 
-      progress += 0.1;
+      progress += 0.09;
   }
   cout << endl;
   cout << "\e[?25h"; // show the cursor
@@ -1205,12 +1210,10 @@ class clsGamestate{
               printBattleTitle();
               
               getUserById(targetIndex).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
-              // sleep(1);
 
-              Log(setYellow(_users[i].getName()) + " attacked " + setRed(getUserById(targetIndex).getName()) + " at: " + to_string(attackCoord.x) + ", " + to_string(attackCoord.y) + "\n");
+              Log(setGreen(_users[i].getName()) + " attacked " + setRed(getUserById(targetIndex).getName()) + " at: " + to_string(attackCoord.x) + ", " + to_string(attackCoord.y) + "\n");
 
-              // enterToContinue();
-              yToContinue();
+              enterToContinue(); // DEBUG -> ENABLE THIS!
             }
           }
           //End of round
@@ -1399,36 +1402,36 @@ int main(){
   clsShip cruiser("Cruiser", 3);
   clsShip patrolBoat("Patrol Boat", 2);
 
-  shipConfig.push_back(carrier);
-  shipConfig.push_back(battleship);
+  // shipConfig.push_back(carrier);
+  // shipConfig.push_back(battleship);
   // shipConfig.push_back(submarine);
   // shipConfig.push_back(cruiser);
   // shipConfig.push_back(patrolBoat);
 
-  // state -> registerShip(carrier); 
-  // state -> registerShip(battleship); 
-  // state -> registerShip(submarine); 
-  // state -> registerShip(cruiser); 
-  // state -> registerShip(patrolBoat); 
+  state -> registerShip(carrier); 
+  state -> registerShip(battleship); 
+  state -> registerShip(submarine); 
+  state -> registerShip(cruiser); 
+  state -> registerShip(patrolBoat); 
 
-  clsUser user1("Alex", 1, false, shipConfig);
-  clsUser user2("Sofia", 2, true, shipConfig);
-  clsUser user3("Jimmy", 3, true, shipConfig);
-  clsUser user4("Tim", 4, true, shipConfig);
-  clsUser user5("Boz", 5, true, shipConfig);
+  // clsUser user1("Alex", 1, false, shipConfig);
+  // clsUser user2("Sofia", 2, true, shipConfig);
+  // clsUser user3("Jimmy", 3, true, shipConfig);
+  // clsUser user4("Tim", 4, true, shipConfig);
+  // clsUser user5("Boz", 5, true, shipConfig);
 
-  state -> registerUser(user1);
-  state -> registerUser(user2);
+  // state -> registerUser(user1);
+  // state -> registerUser(user2);
   // state -> registerUser(user3);
   // state -> registerUser(user4);
   // state -> registerUser(user5);
 
-  state -> setState(1);
-  state -> setBoardSize(10, 10);
+  // state -> setState(1);
+  // state -> setBoardSize(10, 10);
 
-  state -> updateUsers();
-  state -> updateUsers();
-  state -> updateUsers();
+  // state -> updateUsers();
+  // state -> updateUsers();
+  // state -> updateUsers();
 
-  // state -> startNewGame();
+  state -> startNewGame();
 }
