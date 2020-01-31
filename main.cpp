@@ -12,6 +12,7 @@ using namespace std;
 /* 
 Name: Alexander Weller
 email: alexander.weller@ada.ac.uk
+AI Design Document: https://docs.google.com/spreadsheets/d/1qIGcY03PQ1ut_RpV3RzkFJiKKVMFKJbYgjXU_Tgb5kQ/edit?usp=sharing
 
 Welcome to Alex Wellers...
    ___         __   __   __           __    _          
@@ -76,6 +77,7 @@ int getIntLength(int i){ // TODO: can go in utils class
 }
 
 int rollDice(int mod){
+  // Log("RollDice -> Mod = ", to_string(mod));//DEBUG
   int random_number = (rand() % mod) + 1; // call the rand() function to get a random number, the param 'mod' is then used to calculate the modulus of the result + 1; if mod = 10, the random number will be between 1 & 10;
   return random_number;
 }
@@ -337,32 +339,10 @@ udtCoord cpuGenerateRandCoords(int xSize, int ySize){
 
   _tempCoord.x = rollDice(xSize); //get a random number between 1 & xSize
   _tempCoord.y = rollDice(ySize); //get a random number between 1 & ySize
+
+  Log("Generated random x coord: " + to_string(_tempCoord.x));
+  Log("Generated random y coord: " + to_string(_tempCoord.y));
   return _tempCoord;
-}
-
-udtCoord cpuGenerateSmartCoords(int xSize, int ySize, int lastX, int lastY){
-  udtCoord _tempCoord = {lastX, lastY}; // initialise with last attacked coord values;
-  // int randomNum = rollDice(4); // randomly select a number between 1-4;
-
-  if(!lastX + 1 > xSize){
-    _tempCoord.x += 1; //adjust next coord 1 place right;
-    return _tempCoord;
-
-  } else if(!lastX - 1 < 1){
-    _tempCoord.x -= 1; //adjust next coord 1 place left;
-    return _tempCoord;
-
-  } else if(!lastY + 1 > ySize){
-    _tempCoord.y += 1; //adjust next coord 1 place up;
-    return _tempCoord;
-
-  } else if(!lastY - 1 < 1){
-    _tempCoord.y -= 1; //adjust next coord 1 place down;
-    return _tempCoord;
-  } else {
-    Log("No viable smart moves -> Generating Random coords");
-    cpuGenerateRandCoords(xSize, ySize);
-  }
 }
 
 char cpuSelectHeading(){
@@ -383,12 +363,8 @@ int cpuSelectRandomTarget(int activePlayerCount, int userIdIgnore){
     randId = rollDice(activePlayerCount); // get a random number between 1 and the amount of active players;
   } while(randId == userIdIgnore);
 
-  cout << "Random = " << randId << endl;
-  cout << "Ignore = " << userIdIgnore << endl;
-
   return randId;
 }
-
 
 
 //SHIP CLASS
@@ -988,13 +964,93 @@ class clsUser{ //Observer
       _lastTarget = id;
     }
 
+    vector <udtCoord> getPotentialAttackCoords(){
+      return _cpuPotentialAttack;
+    }
+
+    void clearPotentials(){
+      Log("Purging potentials for ", getName(), "...");
+      _cpuPotentialAttack.clear();
+    }
+
+    void cpuGeneratePotentialAttackCoords(int xSize, int ySize, clsUser target){
+      // bool success = false;
+      udtCoord _temp = { _lastHitCoord.x, _lastHitCoord.y };
+
+      clearPotentials();
+      Log("Successfully cleared old potentials");//DEBUG
+
+      if((_temp.x + 1) <= xSize && !target.hasBeenAttacked(_temp.x+1, _temp.y)){ //if adding +1 to Xcoord of last hit fits on board;
+        udtCoord _newCoord = { _temp.x + 1, _temp.y };
+        Log("x + 1 will fit & has not been attacked");//DEBUG
+        // if(!target.hasBeenAttacked(_newCoord.x, _newCoord.y)){ // if the new coord has not been attacked already;
+          _cpuPotentialAttack.push_back(_newCoord); // push the new coord to potentials;
+          // success = true;
+          Log("adding..." + to_string(_newCoord.x) + ", " + to_string(_newCoord.y));//DEBUG
+        // }
+      }
+
+      if((_temp.y + 1) <= ySize && !target.hasBeenAttacked(_temp.x, _temp.y + 1)){
+        udtCoord _newCoord = { _temp.x, _temp.y + 1 };
+        Log("y + 1 will fit & has not been attacked");//DEBUG
+        // if(!target.hasBeenAttacked(_newCoord.x, _newCoord.y)){ // if the new coord has not been attacked already;
+          _cpuPotentialAttack.push_back(_newCoord); // push the new coord to potentials;
+          // success = true;
+          Log("adding..." + to_string(_newCoord.x) + ", " + to_string(_newCoord.y));//DEBUG
+        // }
+      }
+
+      if((_temp.x - 1) > 0 && !target.hasBeenAttacked(_temp.x - 1, _temp.y)){
+        udtCoord _newCoord = { _temp.x - 1, _temp.y };
+        Log("x - 1 will fit & has not been attacked");//DEBUG
+        // if(!target.hasBeenAttacked(_newCoord.x, _newCoord.y)){ // if the new coord has not been attacked already;
+          _cpuPotentialAttack.push_back(_newCoord); // push the new coord to potentials;
+          // success = true;
+          Log("adding..." + to_string(_newCoord.x) + ", " + to_string(_newCoord.y));//DEBUG
+        // }
+      }
+
+      if((_temp.y - 1) > 0 && !target.hasBeenAttacked(_temp.x, _temp.y - 1)){
+        udtCoord _newCoord = { _temp.x, _temp.y - 1 };
+        Log("y - 1 will fit & has not been attacked");//DEBUG
+        // if(!target.hasBeenAttacked(_newCoord.x, _newCoord.y)){ // if the new coord has not been attacked already;
+          _cpuPotentialAttack.push_back(_newCoord); // push the new coord to potentials;
+          // success = true;
+          Log("adding..." + to_string(_newCoord.x) + ", " + to_string(_newCoord.y));//DEBUG
+        // }
+      }
+      // if(!success) {  //if no new potential hits, reset last hit;
+      //   _temp = {-1, -1};
+      // }
+    }
+
+    udtCoord cpuGenerateSmartCoords(){
+      int size = _cpuPotentialAttack.size(); //get amount of potential coords;
+      Log("_cpuPotentialAttack.size() = " + to_string(_cpuPotentialAttack.size()));//DEBUG
+      int selection = rollDice(size); //get random number based on amount of potentials;
+      Log("selection = " + to_string(selection));//DEBUG
+      Log("cpuGenerateSmartCoords x: ", to_string(_cpuPotentialAttack[selection].x));//DEBUG
+      Log("cpuGenerateSmartCoords y: ", to_string(_cpuPotentialAttack[selection].y));//DEBUG
+
+      return _cpuPotentialAttack[selection]; //return the randomly selected coord;
+    }
+
+    void printPotentials(){//DEBUG functions
+    Log("Printing potential next shots for ", getName());
+      for(int i = 0; i < _cpuPotentialAttack.size(); i++){
+        Log("x: ", to_string(_cpuPotentialAttack[i].x));
+        Log("y: ", to_string(_cpuPotentialAttack[i].y));
+      }
+    }
+
   private:
     int _id;
     string _name;
     vector < udtCoord > _occupied; // represents a players personal board;
     vector < udtCoord > _attacked; // represents where users have fired at this users board;
+    vector < udtCoord > _cpuPotentialAttack;
     vector < clsShip > _ships;
-    udtCoord _lastHitCoord = {-1, -1};
+    udtCoord _lastHitCoord = { -1, -1 };
     int _lastTarget = -1;
     bool _active = true;
     bool _cpu = false;
@@ -1209,37 +1265,24 @@ class clsGamestate{
               int lastTargetIndex = checkUserExistsById(_users[i].getLastTargetId()).second;
               bool lastTargetExists = checkUserExistsById(_users[i].getLastTargetId()).first;
               bool hit = false;
-              udtCoord attackCoord;
-
-              cout << "targetIndex = " << targetIndex << endl;
+              udtCoord attackCoord = { -1, -1 }; // TESTING - Initialise eith negative vals;
               
               //ADAPTIVE CPU - SELECT TARGET: 
               if(!lastTargetExists || !getUserByIndex(lastTargetIndex).isActive()){// If _lastTarget isnt active or doesnt exist -> select new random target;
                 int _targetId;
-                cout << _users[i].getName() << "'s target doesnt exist -> generating new target" << endl;
-
-                // reset lastHitCoord // may not be necessary;
-                // _users[i].resetLastHitCoord();
-                // Log(_users[i].getName(), ": RESETTING LAST HIT COORD");
 
                 // generate a random targetId
                 _targetId = cpuSelectRandomTarget(getActivePlayers(), _users[i].getId()); 
-                cout << "Current users ID = " << _users[i].getId() << endl;
-                Log("New Target ID = ", to_string(_targetId));
 
                 // set lastTarget
                 _users[i].setLastTargetId(_targetId);
 
                 //find the user in _users - return the index of the found user in _users;
                 targetIndex = checkUserExistsById(_targetId).second; 
-                cout << "TargetIndex = " << targetIndex << endl;
               } else {
-                cout << "Target Exists -> setting target to last target ID: " << _users[i].getLastTargetId() << endl;
                 targetIndex = checkUserExistsById(_users[i].getLastTargetId()).second;
               }
               ///////////////////////////
-
-              yToContinue();
 
               //USER INTERFACE
               ClearConsole();
@@ -1257,7 +1300,7 @@ class clsGamestate{
                 !getUserByIndex(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, _users[i].getLastHitCoord().x, 'x') ||
                 !getUserByIndex(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, _users[i].getLastHitCoord().y, 'y') 
                 ){
-                  Log("RANDOMLY GENERATING ATTACK COORD");
+                  Log("RANDOMLY GENERATING ATTACK COORD");//DEBUG
                   do {
                     attackCoord = cpuGenerateRandCoords(getBoardSize().x, getBoardSize().y); // generate random attack coords;
                   } while(!getUserByIndex(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, attackCoord.x, 'x') || //if x coord..
@@ -1265,25 +1308,29 @@ class clsGamestate{
                       getUserByIndex(targetIndex).checkCollision(attackCoord.x, attackCoord.y, true)   //or the attack coord has already been attacked 
                     );
                  } else {
-                  Log("TARGETING AREA OF PREVIOUS HIT COORD");
-                  udtCoord lastHit = _users[i].getLastHitCoord();
+                  Log("TARGETING AREA OF PREVIOUS HIT COORD");//DEBUG
+                  _users[i].printPotentials();//DEBUG
+                  attackCoord = _users[i].cpuGenerateSmartCoords(); // return random potential attack location;
+                  }
 
-                  do {
-                    attackCoord = cpuGenerateSmartCoords(getBoardSize().x, getBoardSize().y, _users[i].getLastHitCoord().x, _users[i].getLastHitCoord().y); // generate a coordinate 1 space from last hit location
-                  } while(!getUserByIndex(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, attackCoord.x, 'x') || //if x coord..
-                      !getUserByIndex(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, attackCoord.y, 'y') || //or y coord is invalid
-                      getUserByIndex(targetIndex).checkCollision(attackCoord.x, attackCoord.y, true)   //or the attack coord has already been attacked 
-                    );
-                 }
+              yToContinue();//DEBUG              
 
-              yToContinue();              
-
+              Log("Adding attack coord to target: ", getUserByIndex(targetIndex).getName());//DEBUG
               getUserByIndex(targetIndex).addAttacked(attackCoord.x, attackCoord.y); // add the validated attack coordinate to the targets board;
+              Log("Successfully added attacked coord to: ", getUserByIndex(targetIndex).getName());//DEBUG
+
+              Log("Is the attack a hit: ", to_string(getUserByIndex(targetIndex).getAttackedOrOccupied(attackCoord.x, attackCoord.y)));//DEBUG
 
               if(getUserByIndex(targetIndex).getAttackedOrOccupied(attackCoord.x, attackCoord.y)){//if the attacked coord has hit...
+                Log("Setting hit = true");//DEBUG
                 hit = true;
+                Log("Storing hit location");//DEBUG
                 _users[i].setLastHitCoord(attackCoord.x, attackCoord.y); // record the hit;
+                Log("Generating new potentials");//DEBUG
+                _users[i].cpuGeneratePotentialAttackCoords(getBoardSize().x, getBoardSize().y, getUserByIndex(targetIndex)); // build new potential hits
               }
+
+              yToContinue();//DEBUG
 
               ClearConsole();
               printBattleTitle();
@@ -1295,6 +1342,8 @@ class clsGamestate{
                 Log("The shot has " +  setRed("hit!"));
               } else {
                 Log("The shot " + setYellow("missed!"));
+                //reset potentials
+                _users[i].clearPotentials();
               }
               Log();
 
@@ -1480,11 +1529,11 @@ int main(){
   shipConfig.push_back(cruiser);
   shipConfig.push_back(patrolBoat);
 
-  // state -> registerShip(carrier); 
-  // state -> registerShip(battleship); 
-  // state -> registerShip(submarine); 
-  // state -> registerShip(cruiser); 
-  // state -> registerShip(patrolBoat); 
+  state -> registerShip(carrier); 
+  state -> registerShip(battleship); 
+  state -> registerShip(submarine); 
+  state -> registerShip(cruiser); 
+  state -> registerShip(patrolBoat); 
 
   clsUser user1("Alex", 1, true, shipConfig);
   clsUser user2("Sofia", 2, true, shipConfig);
@@ -1492,18 +1541,18 @@ int main(){
   clsUser user4("Tim", 4, true, shipConfig);
   clsUser user5("Boz", 5, true, shipConfig);
 
-  state -> registerUser(user1);
-  state -> registerUser(user2);
+  // state -> registerUser(user1);
+  // state -> registerUser(user2);
   // state -> registerUser(user3);
   // state -> registerUser(user4);
   // state -> registerUser(user5);
 
-  state -> setState(1);
-  state -> setBoardSize(10, 10);
+  // state -> setState(1);
+  // state -> setBoardSize(10, 10);
 
-  state -> updateUsers();
-  state -> updateUsers();
-  state -> updateUsers();
+  // state -> updateUsers();
+  // state -> updateUsers();
+  // state -> updateUsers();
 
-  // state -> startNewGame();
+  state -> startNewGame();
 }
