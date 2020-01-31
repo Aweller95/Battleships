@@ -1,9 +1,4 @@
-y
-y
-yy
-y
-y
-y#include <iostream>
+#include <iostream>
 #include <string>
 #include <vector>
 #include <cmath>
@@ -11,7 +6,6 @@ y#include <iostream>
 #include <typeinfo>
 #include <limits>
 #include <unistd.h>
-
 
 using namespace std;
 
@@ -128,7 +122,6 @@ string setBrightGreen(char letter){
   string escSeq1 = "\033[0m";
 
   result.push_back(letter);
-
 
   return result + escSeq1;
 }
@@ -282,21 +275,25 @@ void progressBar(int width){
   cout << "\e[?25l"; //Hide the cursor;
   
   while (progress < 1.01) {
-      int barWidth = width;
+    int barWidth = width;
 
-      cout << setBrightGreen("[");
-      int pos = barWidth * progress;
-      
-      for (int i = 0; i < barWidth; ++i) {
-          if (i < pos) cout << setGreen("=");
-          else if (i == pos) cout << setGreen(">");
-          else cout << " ";
+    cout << setBrightGreen("[");
+    int pos = barWidth * progress;
+    
+    for (int i = 0; i < barWidth; ++i) {
+      if (i < pos){
+        cout << setGreen("=");
+      } else if (i == pos) {
+        cout << setGreen(">");
+      } else { 
+        cout << " ";
       }
-      cout << setBrightGreen("] ") << int(progress * 100.0) << " %\r";
-      usleep(120000);//wait in microseconds
-      cout.flush();
+    }
+    cout << setBrightGreen("] ") << int(progress * 100.0) << " %\r";
+    usleep(120000);//wait in microseconds
+    cout.flush();
 
-      progress += 0.09;
+    progress += 0.09;
   }
   cout << endl;
   cout << "\e[?25h"; // show the cursor
@@ -304,7 +301,7 @@ void progressBar(int width){
 
 string cleanString(string text){
   string _local = text;
-  cout << endl << "BEFORE: [" <<_local << "]\n";//TODO: remove this
+  cout << endl << "BEFORE: [" <<_local << "]\n";//TODO: remove this DEBUG
 
   for(int i = 0; i < _local.length(); i++){
     if(_local[i] == ' ' && _local[i+1] != ' '){//if singlespace;
@@ -322,7 +319,7 @@ string cleanString(string text){
     _local.erase(_local.size(), 1);
   }
 
-  cout << "AFTER : [" <<_local << "]"; // TODO: Remove this
+  cout << "AFTER : [" <<_local << "]"; // TODO: Remove this DEBUG
 
   return _local;
 };
@@ -335,9 +332,7 @@ void printBoardKey(){
   Log();
 }
  
-
-// Easy CPU Functions
-udtCoord cpuEasySelectCoords(int xSize, int ySize){
+udtCoord cpuGenerateRandCoords(int xSize, int ySize){
   udtCoord _tempCoord;
 
   _tempCoord.x = rollDice(xSize); //get a random number between 1 & xSize
@@ -345,7 +340,7 @@ udtCoord cpuEasySelectCoords(int xSize, int ySize){
   return _tempCoord;
 }
 
-char cpuEasySelectHeading(){
+char cpuSelectHeading(){
   int selected = rollDice(4); //get a random number inclusively between 1 & 4
 
   switch(selected){
@@ -360,14 +355,14 @@ int cpuSelectRandomTarget(int activePlayerCount, int userIdIgnore){
   int randId;
 
   do{
-    randId = rollDice(activePlayerCount);
+    randId = rollDice(activePlayerCount); // get a random number between 1 and the amount of active players;
     cout << "randId = " << randId << endl;
   } while(randId == userIdIgnore);
 
-  cout << "randId: " << randId << ", ignoreId: " << userIdIgnore << endl;
   return randId;
 }
-////
+
+
 
 //SHIP CLASS
 class clsShip{
@@ -461,6 +456,18 @@ class clsUser{ //Observer
       return _id;
     }
 
+    bool isCPU(){
+      return _cpu;
+    }
+
+    void setInactive(){
+      _active = false;
+    }
+
+    bool isActive(){
+      return _active;
+    }
+
     vector < udtCoord > getOccupied(){
       return _occupied;
     }
@@ -472,8 +479,6 @@ class clsUser{ //Observer
     }
 
     bool checkCollision(int x, int y, bool target = false){ //Check if an origin coord is occupied
-    //add validation - can currently place coords outside of map
-    //validateOriginCoord(); requires boardsize
     if(target){
       for(int i = 0; i < _attacked.size(); i++){
         if(_attacked[i].x == x && _attacked[i].y == y){
@@ -530,11 +535,9 @@ class clsUser{ //Observer
     bool hasBeenAttacked(int x, int y){
       for(int i = 0; i < _attacked.size(); i++){
         if(_attacked[i].x == x && _attacked[i].y == y){
-          // Log("Found matching attacked coord"); // DEBUG
           return true;
         }
       }
-      // Log("No matching attacked coord found"); //DEBUG
       return false;
     }
 
@@ -813,13 +816,13 @@ class clsUser{ //Observer
           // ClearConsole();
 
           do{
-            _cpuCoords = cpuEasySelectCoords(xSize, ySize); // select random x & y coords -> validate coords 
+            _cpuCoords = cpuGenerateRandCoords(xSize, ySize); // select random x & y coords -> validate coords 
           } while(checkCollision(_cpuCoords.x, _cpuCoords.y) || !validateOriginCoord(xSize, ySize, _cpuCoords.x, 'x') || !validateOriginCoord(xSize, ySize, _cpuCoords.x, 'x'));
 
           //select a random heading
           while(!canPlace){ // validate heading
             string selected;        
-            heading = cpuEasySelectHeading(); // Assign a random heading to the variable;
+            heading = cpuSelectHeading(); // Assign a random heading to the variable;
 
             if(heading == 'r'){ // HORIZONTAL - HEADING RIGHT
               if(!(_cpuCoords.x + _ships[i].getLength() - 1 > xSize) && !checkCollision(_cpuCoords.x, _cpuCoords.y, heading, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
@@ -926,26 +929,23 @@ class clsUser{ //Observer
     }
 
     //DEBUG function to print a users attacked coords to the console;
-    void printAttacked(){
-      Log("Printing attacked coords for ", getName());
-      for(int i = 0; i < _attacked.size(); i++){
-        Log(to_string(_attacked[i].x), ", ",to_string(_attacked[i].y));
-      }
-      Log();
-    }
+    // void printAttacked(){
+    //   Log("Printing attacked coords for ", getName());
+    //   for(int i = 0; i < _attacked.size(); i++){
+    //     Log(to_string(_attacked[i].x), ", ",to_string(_attacked[i].y));
+    //   }
+    //   Log();
+    // }
 
     //DEBUG function to print a users occupied coords to the console;
-    void printOccupied(){
-      Log("Printing occupied coords for ", getName());
-      for(int i = 0; i < _occupied.size(); i++){
-        Log(to_string(_occupied[i].x), ", ",to_string(_occupied[i].y));
-      }
-      Log();
-    }
+    // void printOccupied(){
+    //   Log("Printing occupied coords for ", getName());
+    //   for(int i = 0; i < _occupied.size(); i++){
+    //     Log(to_string(_occupied[i].x), ", ",to_string(_occupied[i].y));
+    //   }
+    //   Log();
+    // }
 
-    bool isCPU(){
-      return _cpu;
-    }
 
     int calculateHealth(){ // check each ship that a player owns & check if they have remaining bulkheads;
       int remainingShips = 0;
@@ -957,14 +957,6 @@ class clsUser{ //Observer
       }
 
       return remainingShips;
-    }
-
-    void setInactive(){
-      _active = false;
-    }
-
-    bool isActive(){
-      return _active;
     }
 
   private:
@@ -1191,6 +1183,7 @@ class clsGamestate{
 
               // CPU player chooses target;
               getUserById(targetIndex).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board before attacking;
+              printBoardKey();
               Log(setGreen(_users[i].getName()) + " is targeting " + setRed(getUserById(targetIndex).getName()));
               Log();
               Log("Thinking. . .");
@@ -1198,7 +1191,7 @@ class clsGamestate{
 
               // CPU player chooses target coords;
               do {
-              attackCoord = cpuEasySelectCoords(getBoardSize().x, getBoardSize().y); // generate random attack coords;
+              attackCoord = cpuGenerateRandCoords(getBoardSize().x, getBoardSize().y); // generate random attack coords;
               } while(!getUserById(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, attackCoord.x, 'x') || //if x coord..
                       !getUserById(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, attackCoord.y, 'y') || //or y coord is invalid
                       getUserById(targetIndex).checkCollision(attackCoord.x, attackCoord.y, true)   //or the attack coord has already been attacked 
@@ -1210,10 +1203,11 @@ class clsGamestate{
               printBattleTitle();
               
               getUserById(targetIndex).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
+              printBoardKey();
 
               Log(setGreen(_users[i].getName()) + " attacked " + setRed(getUserById(targetIndex).getName()) + " at: " + to_string(attackCoord.x) + ", " + to_string(attackCoord.y) + "\n");
 
-              enterToContinue(); // DEBUG -> ENABLE THIS!
+              yToContinue();
             }
           }
           //End of round
@@ -1221,7 +1215,7 @@ class clsGamestate{
           printRoundOverTitle();
           printRoundEvents();
           roundEvents.clear();
-          enterToContinue();
+          yToContinue();
         }
         setState(3);
 
@@ -1363,15 +1357,6 @@ class clsGamestate{
       _fleetConfig.push_back(ship);
     }
 
-    // void removeUserById(int id){
-    //   for(int i = 0; i < _users.size(); i++){
-    //     if(_users[i].getId() == id){
-    //       Log("Setting ", _users[i].getName(), " as inactive");
-    //       _users[i].setInactive();
-    //     }
-    //   }
-    // }
-
     void setState(int i){ // Debug func;
       _state = i;
     }
@@ -1402,21 +1387,21 @@ int main(){
   clsShip cruiser("Cruiser", 3);
   clsShip patrolBoat("Patrol Boat", 2);
 
-  // shipConfig.push_back(carrier);
-  // shipConfig.push_back(battleship);
-  // shipConfig.push_back(submarine);
+  shipConfig.push_back(carrier);
+  shipConfig.push_back(battleship);
+  shipConfig.push_back(submarine);
   // shipConfig.push_back(cruiser);
   // shipConfig.push_back(patrolBoat);
 
   state -> registerShip(carrier); 
   state -> registerShip(battleship); 
   state -> registerShip(submarine); 
-  state -> registerShip(cruiser); 
-  state -> registerShip(patrolBoat); 
+  // state -> registerShip(cruiser); 
+  // state -> registerShip(patrolBoat); 
 
-  // clsUser user1("Alex", 1, false, shipConfig);
-  // clsUser user2("Sofia", 2, true, shipConfig);
-  // clsUser user3("Jimmy", 3, true, shipConfig);
+  clsUser user1("Alex", 1, false, shipConfig);
+  clsUser user2("Sofia", 2, true, shipConfig);
+  clsUser user3("Jimmy", 3, true, shipConfig);
   // clsUser user4("Tim", 4, true, shipConfig);
   // clsUser user5("Boz", 5, true, shipConfig);
 
