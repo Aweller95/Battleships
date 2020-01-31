@@ -340,6 +340,31 @@ udtCoord cpuGenerateRandCoords(int xSize, int ySize){
   return _tempCoord;
 }
 
+udtCoord cpuGenerateSmartCoords(int xSize, int ySize, int lastX, int lastY){
+  udtCoord _tempCoord = {lastX, lastY}; // initialise with last attacked coord values;
+  // int randomNum = rollDice(4); // randomly select a number between 1-4;
+
+  if(!lastX + 1 > xSize){
+    _tempCoord.x += 1; //adjust next coord 1 place right;
+    return _tempCoord;
+
+  } else if(!lastX - 1 < 1){
+    _tempCoord.x -= 1; //adjust next coord 1 place left;
+    return _tempCoord;
+
+  } else if(!lastY + 1 > ySize){
+    _tempCoord.y += 1; //adjust next coord 1 place up;
+    return _tempCoord;
+
+  } else if(!lastY - 1 < 1){
+    _tempCoord.y -= 1; //adjust next coord 1 place down;
+    return _tempCoord;
+  } else {
+    Log("No viable smart moves -> Generating Random coords");
+    cpuGenerateRandCoords(xSize, ySize);
+  }
+}
+
 char cpuSelectHeading(){
   int selected = rollDice(4); //get a random number inclusively between 1 & 4
 
@@ -356,8 +381,10 @@ int cpuSelectRandomTarget(int activePlayerCount, int userIdIgnore){
 
   do{
     randId = rollDice(activePlayerCount); // get a random number between 1 and the amount of active players;
-    cout << "randId = " << randId << endl;
   } while(randId == userIdIgnore);
+
+  cout << "Random = " << randId << endl;
+  cout << "Ignore = " << userIdIgnore << endl;
 
   return randId;
 }
@@ -928,25 +955,6 @@ class clsUser{ //Observer
       return result;
     }
 
-    //DEBUG function to print a users attacked coords to the console;
-    // void printAttacked(){
-    //   Log("Printing attacked coords for ", getName());
-    //   for(int i = 0; i < _attacked.size(); i++){
-    //     Log(to_string(_attacked[i].x), ", ",to_string(_attacked[i].y));
-    //   }
-    //   Log();
-    // }
-
-    //DEBUG function to print a users occupied coords to the console;
-    // void printOccupied(){
-    //   Log("Printing occupied coords for ", getName());
-    //   for(int i = 0; i < _occupied.size(); i++){
-    //     Log(to_string(_occupied[i].x), ", ",to_string(_occupied[i].y));
-    //   }
-    //   Log();
-    // }
-
-
     int calculateHealth(){ // check each ship that a player owns & check if they have remaining bulkheads;
       int remainingShips = 0;
 
@@ -959,15 +967,38 @@ class clsUser{ //Observer
       return remainingShips;
     }
 
+    udtCoord getLastHitCoord(){
+      return _lastHitCoord;
+    }
+
+    void setLastHitCoord(int x, int y){
+      _lastHitCoord.x = x;
+      _lastHitCoord.y = y;
+    }
+
+    void resetLastHitCoord(){
+      _lastHitCoord = {-1, -1};
+    }
+
+    int getLastTargetId(){
+      return _lastTarget;
+    }
+
+    void setLastTargetId(int id){
+      _lastTarget = id;
+    }
+
   private:
     int _id;
     string _name;
     vector < udtCoord > _occupied; // represents a players personal board;
     vector < udtCoord > _attacked; // represents where users have fired at this users board;
     vector < clsShip > _ships;
+    udtCoord _lastHitCoord = {-1, -1};
+    int _lastTarget = -1;
     bool _active = true;
     bool _cpu = false;
-}; // TODO: Maybe a class for CPU players inheirits clsUser & includes the AI in that inheirited class?
+};
 
 //GAMESTATE CLASS - Combined Singleton, State Machine & observer Design Patterns
 class clsGamestate{
@@ -1156,17 +1187,17 @@ class clsGamestate{
               ClearConsole();
               printBattleTitle();
 
-              getUserById(foundUser.second).viewBoard(getBoardSize().x, getBoardSize().y, true); // view targets board;
+              getUserByIndex(foundUser.second).viewBoard(getBoardSize().x, getBoardSize().y, true); // view targets board;
               _users[i].viewBoard(getBoardSize().x, getBoardSize().y); // View current player board;
               printBoardKey();
 
-              udtCoord validatedAttackCoord = selectTargetCoords(getUserById(foundUser.second), getBoardSize().x, getBoardSize().y); // get user to select attack coords;
-              getUserById(foundUser.second).addAttacked(validatedAttackCoord.x, validatedAttackCoord.y); // add the validated attack coordinate to the targets board;
+              udtCoord validatedAttackCoord = selectTargetCoords(getUserByIndex(foundUser.second), getBoardSize().x, getBoardSize().y); // get user to select attack coords;
+              getUserByIndex(foundUser.second).addAttacked(validatedAttackCoord.x, validatedAttackCoord.y); // add the validated attack coordinate to the targets board;
               
               ClearConsole();
               printBattleTitle();
 
-              getUserById(foundUser.second).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
+              getUserByIndex(foundUser.second).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
               _users[i].viewBoard(getBoardSize().x, getBoardSize().y); // View current player board;
               printBoardKey();
 
@@ -1174,38 +1205,98 @@ class clsGamestate{
               yToContinue();
 
             } else if(_users[i].isActive() && _users[i].isCPU()){ // is active & isCPU
-              int targetId = cpuSelectRandomTarget(getActivePlayers(), _users[i].getId()); // generate a random target
-              int targetIndex = checkUserExistsById(targetId).second; //find the user in _users - return the index of the found user in _users;
+              int targetIndex;
+              int lastTargetIndex = checkUserExistsById(_users[i].getLastTargetId()).second;
+              bool lastTargetExists = checkUserExistsById(_users[i].getLastTargetId()).first;
+              bool hit = false;
               udtCoord attackCoord;
 
+              cout << "targetIndex = " << targetIndex << endl;
+              
+              //ADAPTIVE CPU - SELECT TARGET: 
+              if(!lastTargetExists || !getUserByIndex(lastTargetIndex).isActive()){// If _lastTarget isnt active or doesnt exist -> select new random target;
+                int _targetId;
+                cout << _users[i].getName() << "'s target doesnt exist -> generating new target" << endl;
+
+                // reset lastHitCoord // may not be necessary;
+                // _users[i].resetLastHitCoord();
+                // Log(_users[i].getName(), ": RESETTING LAST HIT COORD");
+
+                // generate a random targetId
+                _targetId = cpuSelectRandomTarget(getActivePlayers(), _users[i].getId()); 
+                cout << "Current users ID = " << _users[i].getId() << endl;
+                Log("New Target ID = ", to_string(_targetId));
+
+                // set lastTarget
+                _users[i].setLastTargetId(_targetId);
+
+                //find the user in _users - return the index of the found user in _users;
+                targetIndex = checkUserExistsById(_targetId).second; 
+                cout << "TargetIndex = " << targetIndex << endl;
+              } else {
+                cout << "Target Exists -> setting target to last target ID: " << _users[i].getLastTargetId() << endl;
+                targetIndex = checkUserExistsById(_users[i].getLastTargetId()).second;
+              }
+              ///////////////////////////
+
+              yToContinue();
+
+              //USER INTERFACE
               ClearConsole();
               printBattleTitle();
-
-              // CPU player chooses target;
-              getUserById(targetIndex).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board before attacking;
-              printBoardKey();
-              Log(setGreen(_users[i].getName()) + " is targeting " + setRed(getUserById(targetIndex).getName()));
+              getUserByIndex(targetIndex).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board before attacking;
+              printBoardKey(); // print board key
+              Log(setGreen(_users[i].getName()) + " is targeting " + setRed(getUserByIndex(targetIndex).getName()));
               Log();
               Log("Thinking. . .");
-              progressBar((getBoardSize().x) * 2);
+              progressBar((getBoardSize().x) * 2); // show CPU is thinking
+              ////////////////
 
-              // CPU player chooses target coords;
-              do {
-              attackCoord = cpuGenerateRandCoords(getBoardSize().x, getBoardSize().y); // generate random attack coords;
-              } while(!getUserById(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, attackCoord.x, 'x') || //if x coord..
-                      !getUserById(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, attackCoord.y, 'y') || //or y coord is invalid
-                      getUserById(targetIndex).checkCollision(attackCoord.x, attackCoord.y, true)   //or the attack coord has already been attacked 
+              // ADAPTIVE CPU player chooses attack coords;
+              if( // if lastHitCoord is invalid -> generate random attackCoord
+                !getUserByIndex(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, _users[i].getLastHitCoord().x, 'x') ||
+                !getUserByIndex(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, _users[i].getLastHitCoord().y, 'y') 
+                ){
+                  Log("RANDOMLY GENERATING ATTACK COORD");
+                  do {
+                    attackCoord = cpuGenerateRandCoords(getBoardSize().x, getBoardSize().y); // generate random attack coords;
+                  } while(!getUserByIndex(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, attackCoord.x, 'x') || //if x coord..
+                      !getUserByIndex(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, attackCoord.y, 'y') || //or y coord is invalid
+                      getUserByIndex(targetIndex).checkCollision(attackCoord.x, attackCoord.y, true)   //or the attack coord has already been attacked 
                     );
+                 } else {
+                  Log("TARGETING AREA OF PREVIOUS HIT COORD");
+                  udtCoord lastHit = _users[i].getLastHitCoord();
 
-              getUserById(targetIndex).addAttacked(attackCoord.x, attackCoord.y); // add the validated attack coordinate to the targets board;
+                  do {
+                    attackCoord = cpuGenerateSmartCoords(getBoardSize().x, getBoardSize().y, _users[i].getLastHitCoord().x, _users[i].getLastHitCoord().y); // generate a coordinate 1 space from last hit location
+                  } while(!getUserByIndex(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, attackCoord.x, 'x') || //if x coord..
+                      !getUserByIndex(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, attackCoord.y, 'y') || //or y coord is invalid
+                      getUserByIndex(targetIndex).checkCollision(attackCoord.x, attackCoord.y, true)   //or the attack coord has already been attacked 
+                    );
+                 }
+
+              yToContinue();              
+
+              getUserByIndex(targetIndex).addAttacked(attackCoord.x, attackCoord.y); // add the validated attack coordinate to the targets board;
+
+              if(getUserByIndex(targetIndex).getAttackedOrOccupied(attackCoord.x, attackCoord.y)){//if the attacked coord has hit...
+                hit = true;
+                _users[i].setLastHitCoord(attackCoord.x, attackCoord.y); // record the hit;
+              }
 
               ClearConsole();
               printBattleTitle();
-              
-              getUserById(targetIndex).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
+              getUserByIndex(targetIndex).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
               printBoardKey();
 
-              Log(setGreen(_users[i].getName()) + " attacked " + setRed(getUserById(targetIndex).getName()) + " at: " + to_string(attackCoord.x) + ", " + to_string(attackCoord.y) + "\n");
+              Log(setGreen(_users[i].getName()) + " attacked " + setRed(getUserByIndex(targetIndex).getName()) + " at: " + to_string(attackCoord.x) + ", " + to_string(attackCoord.y) + "\n");
+              if(hit){
+                Log("The shot has " +  setRed("hit!"));
+              } else {
+                Log("The shot " + setYellow("missed!"));
+              }
+              Log();
 
               yToContinue();
             }
@@ -1325,10 +1416,6 @@ class clsGamestate{
       _users.push_back(user);
     }
 
-    // vector < clsUser > getUsers(){ NOT USED
-    //   return _users;
-    // }
-
     pair<bool, int> checkUserExistsById(int id){
       pair <bool, int> result;
       result.first = false;
@@ -1343,7 +1430,7 @@ class clsGamestate{
       return result;
     }
 
-    clsUser& getUserById(int index){
+    clsUser& getUserByIndex(int index){
       return _users[index];
     }
 
@@ -1390,33 +1477,33 @@ int main(){
   shipConfig.push_back(carrier);
   shipConfig.push_back(battleship);
   shipConfig.push_back(submarine);
-  // shipConfig.push_back(cruiser);
-  // shipConfig.push_back(patrolBoat);
+  shipConfig.push_back(cruiser);
+  shipConfig.push_back(patrolBoat);
 
-  state -> registerShip(carrier); 
-  state -> registerShip(battleship); 
-  state -> registerShip(submarine); 
+  // state -> registerShip(carrier); 
+  // state -> registerShip(battleship); 
+  // state -> registerShip(submarine); 
   // state -> registerShip(cruiser); 
   // state -> registerShip(patrolBoat); 
 
-  clsUser user1("Alex", 1, false, shipConfig);
+  clsUser user1("Alex", 1, true, shipConfig);
   clsUser user2("Sofia", 2, true, shipConfig);
   clsUser user3("Jimmy", 3, true, shipConfig);
-  // clsUser user4("Tim", 4, true, shipConfig);
-  // clsUser user5("Boz", 5, true, shipConfig);
+  clsUser user4("Tim", 4, true, shipConfig);
+  clsUser user5("Boz", 5, true, shipConfig);
 
-  // state -> registerUser(user1);
-  // state -> registerUser(user2);
+  state -> registerUser(user1);
+  state -> registerUser(user2);
   // state -> registerUser(user3);
   // state -> registerUser(user4);
   // state -> registerUser(user5);
 
-  // state -> setState(1);
-  // state -> setBoardSize(10, 10);
+  state -> setState(1);
+  state -> setBoardSize(10, 10);
 
-  // state -> updateUsers();
-  // state -> updateUsers();
-  // state -> updateUsers();
+  state -> updateUsers();
+  state -> updateUsers();
+  state -> updateUsers();
 
-  state -> startNewGame();
+  // state -> startNewGame();
 }
