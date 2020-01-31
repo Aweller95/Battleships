@@ -1025,21 +1025,39 @@ class clsUser{ //Observer
     }
 
     udtCoord cpuGenerateSmartCoords(){
-      int size = _cpuPotentialAttack.size(); //get amount of potential coords;
-      Log("_cpuPotentialAttack.size() = " + to_string(_cpuPotentialAttack.size()));//DEBUG
-      int selection = rollDice(size); //get random number based on amount of potentials;
-      Log("selection = " + to_string(selection));//DEBUG
-      Log("cpuGenerateSmartCoords x: ", to_string(_cpuPotentialAttack[selection].x));//DEBUG
-      Log("cpuGenerateSmartCoords y: ", to_string(_cpuPotentialAttack[selection].y));//DEBUG
+      udtCoord _tempCoord;
+      // int size = ; //get amount of potential coords;
+      // Log("_cpuPotentialAttack.size() = " + to_string(_cpuPotentialAttack.size()));//DEBUG
+      Log();
+      Log("Selecting random potential coord...");
+      cout << "potential vector size: " << _cpuPotentialAttack.size() << endl;
+      Log();
+      int randItem = rollDice(_cpuPotentialAttack.size());
+      cout << "randItem = " << randItem << endl;
+      int index = randItem - 1; //get random number based on amount of potentials;
+      cout << "index = " << index << endl;
+      // TESTING ABOVE -1 AS vector is 0base; <<<<<<
 
-      return _cpuPotentialAttack[selection]; //return the randomly selected coord;
+      cout << "index: " << index << endl;//DEBUG
+
+      _tempCoord.x = _cpuPotentialAttack[index].x;
+      _tempCoord.y = _cpuPotentialAttack[index].y;
+
+      cout << "cpuGenerateSmartCoords x: " << _tempCoord.x << endl; //DEBUG
+      cout << "cpuGenerateSmartCoords y: " << _tempCoord.y << endl; //DEBUG
+      
+      return _tempCoord; //return the randomly selected coord;
     }
 
     void printPotentials(){//DEBUG functions
     Log("Printing potential next shots for ", getName());
-      for(int i = 0; i < _cpuPotentialAttack.size(); i++){
-        Log("x: ", to_string(_cpuPotentialAttack[i].x));
-        Log("y: ", to_string(_cpuPotentialAttack[i].y));
+      if(_cpuPotentialAttack.size()){
+        for(int i = 0; i < _cpuPotentialAttack.size(); i++){
+          Log("x:" + to_string(_cpuPotentialAttack[i].x), " y:" + to_string(_cpuPotentialAttack[i].y));
+          Log();
+        }
+      } else {
+        Log("No potentials");
       }
     }
 
@@ -1310,7 +1328,9 @@ class clsGamestate{
                  } else {
                   Log("TARGETING AREA OF PREVIOUS HIT COORD");//DEBUG
                   _users[i].printPotentials();//DEBUG
+
                   attackCoord = _users[i].cpuGenerateSmartCoords(); // return random potential attack location;
+                  Log("new attackCoord = ", to_string(attackCoord.x) + " " + to_string(attackCoord.y));
                   }
 
               yToContinue();//DEBUG              
@@ -1344,6 +1364,8 @@ class clsGamestate{
                 Log("The shot " + setYellow("missed!"));
                 //reset potentials
                 _users[i].clearPotentials();
+                //reset last hit
+                _users[i].resetLastHitCoord();
               }
               Log();
 
