@@ -343,15 +343,33 @@ udtCoord cpuGenerateRandCoords(int xSize, int ySize){
   return _tempCoord;
 }
 
-char cpuSelectHeading(){
+pair<char, bool> cpuSelectHeading(){
   int selected = rollDice(4); //get a random number inclusively between 1 & 4
+  pair<char, bool> result;
+
+  result.first = 'x';
+  result.second = false;
 
   switch(selected){
-    case 1 : return 'u';
-    case 2 : return 'd';
-    case 3 : return 'l';
-    case 4 : return 'r';
+    case 1 : {
+      result.first = 'u';
+      result.second = true;
+    }
+    case 2 : {
+      result.first = 'd';
+      result.second = true;
+    } 
+    case 3 : {
+      result.first = 'l';
+      result.second = true;
+    }
+    case 4 : {
+      result.first = 'r';
+      result.second = true;
+    }
   }
+
+  return result;
 }
 
 int cpuSelectRandomTarget(int activePlayerCount, int userIdIgnore){
@@ -823,7 +841,7 @@ class clsUser{ //Observer
           //select a random heading
           while(!canPlace){ // validate heading
             string selected;        
-            heading = cpuSelectHeading(); // Assign a random heading to the variable;
+            heading = cpuSelectHeading().first; // Assign a random heading to the variable;
 
             if(heading == 'r'){ // HORIZONTAL - HEADING RIGHT
               if(!(_cpuCoords.x + _ships[i].getLength() - 1 > xSize) && !checkCollision(_cpuCoords.x, _cpuCoords.y, heading, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
@@ -1468,13 +1486,12 @@ class clsGamestate{
     static clsGamestate* _inst;
 };
 
-
-clsGamestate* clsGamestate::_inst = NULL;
+clsGamestate* clsGamestate::_inst = NULL; // indicate that no instance of clsGamestate has been instantiated above this line;
 
 int main(){
   srand(time(NULL)); // Seed random values generated with rand() with the current time;
-  clsGamestate* state; // set variable 'Gamestate' as a pointer;
-  state = clsGamestate::getInstance(); // assign the instance of clsGamestate;
+  clsGamestate* game; // set variable 'Gamestate' as a pointer;
+  game = clsGamestate::getInstance(); // assign the instance of clsGamestate;
 
   clsShip carrier("Aircraft Carrier", 5);
   clsShip battleship("Battleship", 4);
@@ -1482,11 +1499,11 @@ int main(){
   clsShip cruiser("Cruiser", 3);
   clsShip patrolBoat("Patrol Boat", 2);
 
-  state -> registerShip(carrier); 
-  state -> registerShip(battleship); 
-  state -> registerShip(submarine); 
-  state -> registerShip(cruiser); 
-  state -> registerShip(patrolBoat); 
+  game -> registerShip(carrier); 
+  game -> registerShip(battleship); 
+  game -> registerShip(submarine); 
+  game -> registerShip(cruiser); 
+  game -> registerShip(patrolBoat); 
 
-  state -> startNewGame();
+  game -> startNewGame();
 }
