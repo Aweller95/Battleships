@@ -330,9 +330,10 @@ string cleanString(string text){
 
 void printBoardKey(){
   Log("Key:");
-  Log(setGreen("█") + " = Friendly battleship");
+  Log(setGreen("■") + " = Friendly battleship");
+  Log(setRed("■") + " = Sunk ship");
   Log(setYellow("☼") + " = Missed torpedo attack");
-  Log(setRed("X") + " = Torpedo attack hit a battleship");
+  Log(setRed("×") + " = Torpedo attack hit a battleship");
   Log();
 }
  
@@ -616,21 +617,21 @@ class clsUser{ //Observer
             if(target){ //if target is true...
               if(checkCollision(x, y)){//...and this point contains a ship 
                 if(isSunk(x, y)){ // if the coord contains a ship that has been sunk...
-                cout << setRed("S "); // print an S if this coord is occupied by a sunk ship;
+                cout << setRed("■ "); // print an S if this coord is occupied by a sunk ship;
                 } else {
-                cout << setRed("X "); // print an X if this coord is occupied by a ship and has been hit but isnt sunk;
+                cout << setRed("× "); // print an X if this coord is occupied by a ship and has been hit but isnt sunk;
                 }
               } else {
                 cout << setYellow("☼ "); // print a yellow x if this coord has been attacked but is a miss;
               }
             } else if (checkCollision(x, y, true)){ 
               if(isSunk(x, y)){
-                cout << setRed("S "); // print an S if this coord is occupied by a sunk ship;
+                cout << setRed("■ "); // print an S if this coord is occupied by a sunk ship;
               } else {
-                cout << setRed("X "); // print an X if this coord is occupied by a ship and has been hit but isnt sunk;
+                cout << setRed("× "); // print an X if this coord is occupied by a ship and has been hit but isnt sunk;
               }
             } else if (checkCollision(x, y)){ 
-              cout << setGreen("█ "); // print an S if this coord is occupied by a ship;
+              cout << setGreen("■ "); // print an S if this coord is occupied by a ship;
             } 
           }
           else if(hasBeenAttacked(x, y)){
@@ -689,7 +690,7 @@ class clsUser{ //Observer
         
         for(int x = 1; x <= xSize; x++){
           if(getAttackedOrOccupied(x, y)){
-            printGreen("█ ");
+            printGreen("■ ");
           } else if(x == selectedX && y == selectedY){
             printRed("▬ "); // prints the selected coordinate in green;
           } else if (x == xSize){
@@ -1564,15 +1565,15 @@ int main(){
   shipConfig.push_back(cruiser);
   shipConfig.push_back(patrolBoat);
 
-  clsUser user1("Alex", 1, true, shipConfig);
-  clsUser user2("Sofia", 2, true, shipConfig);
+  clsUser user1("Alex", 1, false, shipConfig);
+  clsUser user2("Sofia", 2, false, shipConfig);
   clsUser user3("Bill", 3, true, shipConfig);
   clsUser user4("Ted", 4, true, shipConfig);
 
   game -> registerUser(user1);
   game -> registerUser(user2);
-  game -> registerUser(user3);
-  game -> registerUser(user4);
+  // game -> registerUser(user3);
+  // game -> registerUser(user4);
 
   game -> setPlayerCount(4);
   game -> setBoardSize(7, 7);
