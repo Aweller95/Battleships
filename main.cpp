@@ -37,6 +37,7 @@ struct bulkhead{
   int x = NOVALUE;
   int y = NOVALUE;
   bool hit = false;
+  bool sunk = false;
 };
 
 struct udtCoord{
@@ -76,8 +77,10 @@ int getIntLength(int i){ // TODO: can go in utils class
 }
 
 int rollDice(int mod){
-  // Log("RollDice -> Mod = ", to_string(mod));//DEBUG
-  int random_number = (rand() % mod) + 1; // call the rand() function to get a random number, the param 'mod' is then used to calculate the modulus of the result + 1; if mod = 10, the random number will be between 1 & 10;
+  // call the rand() function to get a random number
+  // the parameter 'mod' is used to calculate the modulus of the result + 1; 
+  // if mod = 10, the random number will be between 1 & 10;
+  int random_number = (rand() % mod) + 1; 
   return random_number;
 }
 
@@ -451,6 +454,12 @@ class clsShip{
       return _announced;
     }
 
+    void setSunk(){
+      for(int i = 0; i < _bulkheads.size(); i++){
+        _bulkheads[i].sunk = true;
+      }
+    }
+
   private:
     int _length;
     int _health;
@@ -606,18 +615,26 @@ class clsUser{ //Observer
           if(getAttackedOrOccupied(x, y, target)){ //if the current coord matches an already occupied or attacked coord (based on the param 'target')
             if(target){ //if target is true...
               if(checkCollision(x, y)){//...and this point contains a ship 
-                cout << setRed("X ");// print an orange X if this coord has been attacked and is a hit;
+                if(isSunk(x, y)){ // if the coord contains a ship that has been sunk...
+                cout << setRed("S "); // print an S if this coord is occupied by a sunk ship;
+                } else {
+                cout << setRed("X "); // print an X if this coord is occupied by a ship and has been hit but isnt sunk;
+                }
               } else {
                 cout << setYellow("☼ "); // print a yellow x if this coord has been attacked but is a miss;
               }
-            } else if (checkCollision(x, y, true)){ // add another if here to check if the ship has been sunk <- ALEX HERE (TODO / DEBUG)
-              cout << setRed("X "); // print an X if this coord is occupied by a ship and has been hit;
+            } else if (checkCollision(x, y, true)){ 
+              if(isSunk(x, y)){
+                cout << setRed("S "); // print an S if this coord is occupied by a sunk ship;
+              } else {
+                cout << setRed("X "); // print an X if this coord is occupied by a ship and has been hit but isnt sunk;
+              }
             } else if (checkCollision(x, y)){ 
               cout << setGreen("█ "); // print an S if this coord is occupied by a ship;
             } 
           }
           else if(hasBeenAttacked(x, y)){
-              cout << setYellow("☼ "); // print a yellow x if this coord has been hit but is not occupied by a ship;
+              cout << setYellow("☼ "); // print a yellow ☼ if this coord has been hit but is not occupied by a ship;
             } else if (x == xSize){
             cout << "▬";
           } else {
@@ -909,13 +926,14 @@ class clsUser{ //Observer
           if(x == _ships[i].getBulkheads()[j].x && y == _ships[i].getBulkheads()[j].y){ // if the passed in coords match a bulkhead;
             missed = false;
             roundEvents.push_back(getName() + "'s " + _ships[i].getName() + " has been " + setRed("hit!")); // If a ship has been hit, add it to the message queue;
-            _ships[i].getBulkheads()[j].hit = true; // set the current bulkheads status hit = true;
             _ships[i].decrementHealth(); // decrease the current ships health by 1;
+            _ships[i].getBulkheads()[j].hit = true; // set the current bulkheads status hit = true;
           }
         }
 
         if(_ships[i].getHealth() == 0 && !_ships[i].getAnnounced()){ //if any of the updated ships have been destroyed & they have not been announced;
           _ships[i].setAnnounced();
+          _ships[i].setSunk(); // set all of the ships bulheads to sunk status;
           roundEvents.push_back(getName() + "'s " + _ships[i].getName() + " has been " + setRed("destroyed!")); // Add this to the message queue
         }
       } 
@@ -967,18 +985,18 @@ class clsUser{ //Observer
       return remainingShips;
     }
 
-    udtCoord getLastHitCoord(){
-      return _lastHitCoord;
-    }
+    // udtCoord getLastHitCoord(){
+    //   return _lastHitCoord;
+    // }
 
-    void setLastHitCoord(int x, int y){
-      _lastHitCoord.x = x;
-      _lastHitCoord.y = y;
-    }
+    // void setLastHitCoord(int x, int y){
+    //   _lastHitCoord.x = x;
+    //   _lastHitCoord.y = y;
+    // }
 
-    void resetLastHitCoord(){
-      _lastHitCoord = {-1, -1};
-    }
+    // void resetLastHitCoord(){
+    //   _lastHitCoord = {-1, -1};
+    // }
 
     int getLastTargetId(){
       return _lastTarget;
@@ -991,11 +1009,6 @@ class clsUser{ //Observer
     vector <udtCoord> getPotentialAttackCoords(){
       return _cpuPotentialAttack;
     }
-
-    // void clearPotentials(){
-    //   Log("Purging potentials for ", getName(), "...");//DEBUG
-    //   _cpuPotentialAttack.clear();
-    // }
 
     bool checkPotentialsIfExists(udtCoord coord){ // Checks if the passed in coord is already in the potentials vector;
       bool result = false;
@@ -1010,8 +1023,6 @@ class clsUser{ //Observer
 
     void cpuGeneratePotentialAttackCoords(int xSize, int ySize, int x, int y, clsUser target){
       udtCoord _temp = { x, y };
-
-      // clearPotentials();//DEBUG: may not need to clear here
 
       if((_temp.x + 1) <= xSize && !target.hasBeenAttacked(_temp.x+1, _temp.y)){ //if adding +1 to Xcoord of last hit fits on board;
         udtCoord _newCoord = { _temp.x + 1, _temp.y }; // build new adjusted coord
@@ -1059,16 +1070,28 @@ class clsUser{ //Observer
       return _tempCoord; //return the randomly selected coord;
     }
 
-    void printPotentials(){ //DEBUG functions
-    Log("Printing potential next shots for ", getName());
+    void printPotentials(){ //DEBUG function
+    Log("Printing potential next shots for ", getName());//DEBUG
       if(_cpuPotentialAttack.size()){
         for(int i = 0; i < _cpuPotentialAttack.size(); i++){
           Log("x:" + to_string(_cpuPotentialAttack[i].x), " y:" + to_string(_cpuPotentialAttack[i].y));
           Log();
         }
       } else {
-        Log("No potentials");
+        Log("No potentials");//DEBUG
       }
+    }
+
+    bool isSunk(int x, int y){
+      for(int s = 0; s < _ships.size(); s++){ // for each ship...
+        for(int b = 0; b < _ships[s].getBulkheads().size(); b++){ //for each bulkhead...
+          if(_ships[s].getBulkheads()[b].x == x && _ships[s].getBulkheads()[b].y) { //if the params match the coords of a bulkhead 
+            
+            if(_ships[s].getBulkheads()[b].sunk) return true;
+          }
+        }
+      }
+      return false;
     }
 
   private:
@@ -1078,7 +1101,7 @@ class clsUser{ //Observer
     vector < udtCoord > _attacked; // represents where users have fired at this users board;
     vector < udtCoord > _cpuPotentialAttack;
     vector < clsShip > _ships;
-    udtCoord _lastHitCoord = { -1, -1 };
+    // udtCoord _lastHitCoord = { -1, -1 }; TODO: remove
     int _lastTarget = -1;
     bool _active = true;
     bool _cpu = false;
@@ -1360,8 +1383,6 @@ class clsGamestate{
               }
               Log();
 
-              _users[i].printPotentials();
-
               yToContinue();
             }
           }
@@ -1508,7 +1529,7 @@ class clsGamestate{
       _fleetConfig.push_back(ship);
     }
 
-    void setState(int i){ // Debug func;
+    void setState(int i){
       _state = i;
     }
 
