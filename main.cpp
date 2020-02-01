@@ -584,9 +584,9 @@ class clsUser{ //Observer
 
     void viewBoard(int xSize, int ySize, bool target = false){ // view a players board, optional param 'target' will change if the board is drawn with occupied spaces or spaces that have been fired at;
       if(target){
-        Log("Targeting ", getName(), "'s board");
+        Log("Targeting ", setRed(getName()), "'s board");
       } else {
-        Log("Your (", getName(), "'s) board");
+        Log("Your (", setGreen(getName()), "'s) board");
       }
 
       cout << "   ╔";
@@ -731,7 +731,8 @@ class clsUser{ //Observer
           printPlacementTitle();
 
           viewBoard(xSize, ySize);
-          Log(getName(), ", place your ", _ships[i].getName() + " (length: " + to_string(_ships[i].getLength()) + ")");
+          Log();
+          Log(setGreen(getName()), ", place your ", setYellow(_ships[i].getName()) + " (length: " + to_string(_ships[i].getLength()) + ")");
           Log();
 
           Log("Enter " + setBrightGreen("X") + " coord");
@@ -1152,13 +1153,13 @@ class clsGamestate{
     }
 
     void initPlayers(){
-      ClearConsole();
-      printPlayersTitle();
-
       for(int i = 0; i < _playerCount; i++){
         char userChoice;
         bool isCPU = false;
         string name;
+        
+        ClearConsole();
+        printPlayersTitle();
 
         Log("Enter player ", to_string(i+1), "'s name:");
         cin >> name;
@@ -1189,6 +1190,9 @@ class clsGamestate{
 
       ClearConsole();
       printConfigTitle();
+
+      Log("(Recommended board size: " + setBrightGreen("10") + " x " + setCyan("10") + ")");
+      Log();
 
       Log("Please enter the size of the " + setBrightGreen("X") + " axis for player boards");
       cin >> x;
@@ -1264,11 +1268,13 @@ class clsGamestate{
               pair <bool, int> foundUser;
               int targetId = -1;
 
-              ClearConsole();
-              printReadyTitle();
-              Log(setGreen(_users[i].getName()), " are you ready? (make sure your " + setRed("opponents") + " cannot see the screen!)");
-              Log();
-              yToContinue();
+              if(getNumOfHumanOpponents(_users[i].getId()) > 0){ // if there is at least 1 human opponent - show this warning;
+                ClearConsole();
+                printReadyTitle();
+                Log(setGreen(_users[i].getName()), " are you ready? (make sure your " + setRed("opponents") + " cannot see the screen!)");
+                Log();
+                yToContinue();
+              }
 
               // PLAYER SELECT TARGET
               if(getActivePlayers() > 2){ //if there are more than 2 players, get user to enter a target;
@@ -1498,6 +1504,17 @@ class clsGamestate{
 
     void registerUser(clsUser& user){ // register a user to the gamestate by adding it to the _users vector;
       _users.push_back(user);
+    }
+
+    int getNumOfHumanOpponents(int ignoreId){
+      int count = 0;
+
+      for(int i = 0; i < _users.size(); i++){
+        if(_users[i].getId() != ignoreId && !_users[i].isCPU()){
+          count++;
+        }
+      }
+      return count;
     }
 
     pair<bool, int> checkUserExistsById(int id){
