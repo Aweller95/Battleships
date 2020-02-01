@@ -273,6 +273,21 @@ void printGameOverTitle(){
   Log(); 
 }
 
+void printReadyTitle(){
+  string line1 = "   ___                 __      ___ ";
+  string line2 = "  / _ \\ ___  ___ _ ___/ /__ __/__ \\";
+  string line3 = " / , _// -_)/ _ `// _  // // / /__/";
+  string line4 = "/_/|_| \\__/ \\_,_/ \\_,_/ \\_, / (_)  ";
+  string line5 = "                       /___/       ";
+  
+  Log(setGreen(line1));
+  Log(setGreen(line2));
+  Log(setGreen(line3));
+  Log(setGreen(line4));
+  Log(setGreen(line5));
+  Log();     
+}
+
 void ClearConsole(){
   cout << "\033[2J\033[0;0H"; // escape sequence that clears the console;
 }
@@ -1249,6 +1264,11 @@ class clsGamestate{
               pair <bool, int> foundUser;
               int targetId = -1;
 
+              ClearConsole();
+              printReadyTitle();
+              Log(setGreen(_users[i].getName()), " are you ready? (make sure your " + setRed("opponents") + " cannot see the screen!)");
+              Log();
+              yToContinue();
 
               // PLAYER SELECT TARGET
               if(getActivePlayers() > 2){ //if there are more than 2 players, get user to enter a target;
