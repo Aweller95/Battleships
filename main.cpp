@@ -13,6 +13,7 @@ using namespace std;
 Name: Alexander Weller
 email: alexander.weller@ada.ac.uk
 AI Design Document: https://docs.google.com/spreadsheets/d/1qIGcY03PQ1ut_RpV3RzkFJiKKVMFKJbYgjXU_Tgb5kQ/edit?usp=sharing
+--> I have also thought about x, y z for AI targeting algorithm;
 
 Welcome to Alex Wellers...
    ___         __   __   __           __    _          
@@ -22,12 +23,10 @@ Welcome to Alex Wellers...
                                            /_/         
 
 - Gamestate contains a vector of users; The state registers new users;
-- User contains a vector of ships;
-- Board needs to know about players & ships - must subscribe to both User and Gamestate;
--- Board needs to be able to iterate through all users & then iterate through each users ship vector;
+- User contains a vector of ships, a vector of occupied coordinates and a vector of coordinates that they have been attacked at;
 */
 
-// Declare classes here initially to enable interdependence of classes;
+// I declare classes here initially to enable interdependence;
 class clsShip;
 class clsUser;
 class clsGamestate;
@@ -45,7 +44,7 @@ struct udtCoord{
   int y;
 };
 
-vector <string> roundEvents;
+vector <string> roundEvents; // stores strings that describe various events that occur during a round;
 
 //UTILITIES CLASS
 /* 
@@ -82,7 +81,7 @@ int rollDice(int mod){
   return random_number;
 }
 
-void printRoundEvents(){
+void printRoundEvents(){ // TODO: move to state
   Log("Round History");
   Log("________________________________");
   Log("════════════════════════════════");
@@ -93,16 +92,16 @@ void printRoundEvents(){
   Log("════════════════════════════════");
 }
 
-void yToContinue(){
+void yToContinue(){ // TODO: Move to state
   char input;
   Log("Continue...? (y)");
   
   do {
     cin >> input;
-  }while(input != 'y');
+  } while(input != 'y');
 }
 
-void enterToContinue(){
+void enterToContinue(){ // TODO: move to state
   Log("Press enter to continue...");
   cin.ignore();
 }
@@ -119,7 +118,7 @@ string setBrightGreen(string message){
   return "\x1B[92m" + message + "\033[0m";
 }
 
-string setBrightGreen(char letter){
+string setBrightGreen(char letter){ 
   string result = "\x1B[92m";
   string escSeq1 = "\033[0m";
 
@@ -343,9 +342,12 @@ udtCoord cpuGenerateRandCoords(int xSize, int ySize){
   return _tempCoord;
 }
 
-pair<char, bool> cpuSelectHeading(){
+pair<char, bool> cpuSelectHeading(){ //TODO: Remove, Not needed;
   int selected = rollDice(4); //get a random number inclusively between 1 & 4
   pair<char, bool> result;
+
+  Log();
+  cout << selected << endl;
 
   result.first = 'x';
   result.second = false;
@@ -368,7 +370,7 @@ pair<char, bool> cpuSelectHeading(){
       result.second = true;
     }
   }
-
+  cout << result.first << endl;
   return result;
 }
 
@@ -712,7 +714,7 @@ class clsUser{ //Observer
         char heading;
         bool canPlace = false;
 
-        if(!isCPU()){
+        if(!isCPU()){ // if player is not CPU controlled
           ClearConsole();
           printPlacementTitle();
 
@@ -793,7 +795,7 @@ class clsUser{ //Observer
             }
 
             if(heading == 'l'){ // HORIZONTAL - HEADING LEFT
-              if(!(x - _ships[i].getLength() < 0) && !checkCollision(x, y, heading, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
+              if(!(x - _ships[i].getLength() < 0) && !checkCollision(x, y, heading, _ships[i].getLength())){
                 canPlace = true;
                 break;
               }
@@ -801,7 +803,7 @@ class clsUser{ //Observer
             } 
 
             if(heading == 'u'){ //VERTICAL - HEADING UP
-              if(!(y + _ships[i].getLength() - 1 > ySize) && !checkCollision(x, y, heading, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
+              if(!(y + _ships[i].getLength() - 1 > ySize) && !checkCollision(x, y, heading, _ships[i].getLength())){
                 canPlace = true;
                 break;
               }
@@ -809,7 +811,7 @@ class clsUser{ //Observer
             }
 
             if(heading == 'd'){ //VERTICAL - HEADING DOWN
-              if(!(y - _ships[i].getLength() < 0) && !checkCollision(x, y, heading, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
+              if(!(y - _ships[i].getLength() < 0) && !checkCollision(x, y, heading, _ships[i].getLength())){
                 canPlace = true;
                 break;
               }
@@ -827,56 +829,62 @@ class clsUser{ //Observer
           printPlacementTitle();
           viewBoard(xSize, ySize);//View the board after placement for visual confirmation;
 
-        } else {
-          bool canPlace = false;
+        } else { // if the player is CPU controlled
           udtCoord _cpuCoords;
-          char heading;
-
-          // ClearConsole();
 
           do{
-            _cpuCoords = cpuGenerateRandCoords(xSize, ySize); // select random x & y coords -> validate coords 
-          } while(checkCollision(_cpuCoords.x, _cpuCoords.y) || !validateOriginCoord(xSize, ySize, _cpuCoords.x, 'x') || !validateOriginCoord(xSize, ySize, _cpuCoords.x, 'x'));
+            int selected = rollDice(4);
 
-          //select a random heading
-          while(!canPlace){ // validate heading
-            string selected;        
-            heading = cpuSelectHeading().first; // Assign a random heading to the variable;
+            //select a random heading
+            do{
+              _cpuCoords = cpuGenerateRandCoords(xSize, ySize); // select random x & y coords -> validate coords 
+            } while(
+              checkCollision(_cpuCoords.x, _cpuCoords.y) || 
+              !validateOriginCoord(xSize, ySize, _cpuCoords.x, 'x') || 
+              !validateOriginCoord(xSize, ySize, _cpuCoords.y, 'y')
+              );
 
-            if(heading == 'r'){ // HORIZONTAL - HEADING RIGHT
-              if(!(_cpuCoords.x + _ships[i].getLength() - 1 > xSize) && !checkCollision(_cpuCoords.x, _cpuCoords.y, heading, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
+            
+            if(selected == 1){ // HORIZONTAL - HEADING RIGHT
+              heading = 'r';
+              // check if the ship will go off of the map OR if it will intersect with another ship
+              if(!(_cpuCoords.x + _ships[i].getLength() - 1 > xSize) && !checkCollision(_cpuCoords.x, _cpuCoords.y, heading, _ships[i].getLength())){
                 canPlace = true;
-                break; // using break here to prevent unnecesary error logging after successful placement;
+                break;
               }
             }
 
-            if(heading == 'l'){ // HORIZONTAL - HEADING LEFT
-              if(!(_cpuCoords.x - _ships[i].getLength() < 0) && !checkCollision(_cpuCoords.x, _cpuCoords.y, heading, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
+            if(selected == 2){ // HORIZONTAL - HEADING LEFT
+              heading = 'l';
+              if(!(_cpuCoords.x - _ships[i].getLength() < 0) && !checkCollision(_cpuCoords.x, _cpuCoords.y, heading, _ships[i].getLength())){
                 canPlace = true;
                 break;
               }
             } 
 
-            if(heading == 'u'){ //VERTICAL - HEADING UP
-              if(!(_cpuCoords.y + _ships[i].getLength() - 1 > ySize) && !checkCollision(_cpuCoords.x, _cpuCoords.y, heading, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
+            if(selected == 3){ //VERTICAL - HEADING UP
+              heading = 'u';
+              if(!(_cpuCoords.y + _ships[i].getLength() - 1 > ySize) && !checkCollision(_cpuCoords.x, _cpuCoords.y, heading, _ships[i].getLength())){
                 canPlace = true;
                 break;
               }
             }
 
-            if(heading == 'd'){ //VERTICAL - HEADING DOWN
-              if(!(_cpuCoords.y - _ships[i].getLength() < 0) && !checkCollision(_cpuCoords.x, _cpuCoords.y, heading, _ships[i].getLength())){ // check if the ship will go off of the map OR if it will intersect with another ship
+            if(heading == 4){ //VERTICAL - HEADING DOWN
+              heading = 'd';
+              if(!(_cpuCoords.y - _ships[i].getLength() < 0) && !checkCollision(_cpuCoords.x, _cpuCoords.y, heading, _ships[i].getLength())){
                 canPlace = true;
                 break;
               }
             }
-          }
 
-          _ships[i].updateBulkheads(_cpuCoords.x, _cpuCoords.y, xSize, ySize, heading); //update the currently selected ships bulkheads;
+          } while(!canPlace);
+
+          _ships[i].updateBulkheads(_cpuCoords.x--, _cpuCoords.y--, xSize, ySize, heading); //update the currently selected ships bulkheads;
           placeShip(_ships[i]); //Add the selected ships coords to the _occupied variable;
         }
       }
-      if(!(isCPU())) yToContinue();; //not working
+      if(!(isCPU())) yToContinue();
     }
     
     void placeShip(clsShip ship){
@@ -984,34 +992,57 @@ class clsUser{ //Observer
       return _cpuPotentialAttack;
     }
 
-    void clearPotentials(){
-      Log("Purging potentials for ", getName(), "...");
-      _cpuPotentialAttack.clear();
+    // void clearPotentials(){
+    //   Log("Purging potentials for ", getName(), "...");//DEBUG
+    //   _cpuPotentialAttack.clear();
+    // }
+
+    bool checkPotentialsIfExists(udtCoord coord){ // Checks if the passed in coord is already in the potentials vector;
+      bool result = false;
+
+      for(int i = 0; i < _cpuPotentialAttack.size(); i++){
+        if(_cpuPotentialAttack[i].x == coord.x && _cpuPotentialAttack[i].y == coord.y){
+          result = true;
+        }
+      }
+      return result;
     }
 
-    void cpuGeneratePotentialAttackCoords(int xSize, int ySize, clsUser target){
-      udtCoord _temp = { _lastHitCoord.x, _lastHitCoord.y };
+    void cpuGeneratePotentialAttackCoords(int xSize, int ySize, int x, int y, clsUser target){
+      udtCoord _temp = { x, y };
 
-      clearPotentials();
+      // clearPotentials();//DEBUG: may not need to clear here
 
       if((_temp.x + 1) <= xSize && !target.hasBeenAttacked(_temp.x+1, _temp.y)){ //if adding +1 to Xcoord of last hit fits on board;
         udtCoord _newCoord = { _temp.x + 1, _temp.y }; // build new adjusted coord
-        _cpuPotentialAttack.push_back(_newCoord); // push the new coord to potentials;
+
+        if(!checkPotentialsIfExists(_newCoord)){ //if the newly generated coord is not already a potential target, add it to potentials;
+          _cpuPotentialAttack.push_back(_newCoord); // push the new coord to potentials;
+        }
       }
 
       if((_temp.y + 1) <= ySize && !target.hasBeenAttacked(_temp.x, _temp.y + 1)){
         udtCoord _newCoord = { _temp.x, _temp.y + 1 };
-        _cpuPotentialAttack.push_back(_newCoord); // push the new coord to potentials;
+        
+        if(!checkPotentialsIfExists(_newCoord)){ //if the newly generated coord is not already a potential target, add it to potentials;
+          _cpuPotentialAttack.push_back(_newCoord); // push the new coord to potentials;
+        }
       }
 
       if((_temp.x - 1) > 0 && !target.hasBeenAttacked(_temp.x - 1, _temp.y)){
         udtCoord _newCoord = { _temp.x - 1, _temp.y };
-        _cpuPotentialAttack.push_back(_newCoord); // push the new coord to potentials;
+
+        if(!checkPotentialsIfExists(_newCoord)){ //if the newly generated coord is not already a potential target, add it to potentials;
+          _cpuPotentialAttack.push_back(_newCoord); // push the new coord to potentials;
+        }
       }
 
       if((_temp.y - 1) > 0 && !target.hasBeenAttacked(_temp.x, _temp.y - 1)){
         udtCoord _newCoord = { _temp.x, _temp.y - 1 };
-        _cpuPotentialAttack.push_back(_newCoord); // push the new coord to potentials;
+
+        if(!checkPotentialsIfExists(_newCoord)){ //if the newly generated coord is not already a potential target, add it to potentials;
+          _cpuPotentialAttack.push_back(_newCoord); // push the new coord to potentials;
+        }
       }
     }
 
@@ -1022,11 +1053,13 @@ class clsUser{ //Observer
 
       _tempCoord.x = _cpuPotentialAttack[index].x;
       _tempCoord.y = _cpuPotentialAttack[index].y;
+
+      _cpuPotentialAttack.erase(_cpuPotentialAttack.begin() + index); // delete the selected coordinate from potentials;
       
       return _tempCoord; //return the randomly selected coord;
     }
 
-    void printPotentials(){//DEBUG functions
+    void printPotentials(){ //DEBUG functions
     Log("Printing potential next shots for ", getName());
       if(_cpuPotentialAttack.size()){
         for(int i = 0; i < _cpuPotentialAttack.size(); i++){
@@ -1101,12 +1134,12 @@ class clsGamestate{
     }
 
     void initPlayers(){
-      char userChoice;
-      bool isCPU = false;
       ClearConsole();
       printPlayersTitle();
 
       for(int i = 0; i < _playerCount; i++){
+        char userChoice;
+        bool isCPU = false;
         string name;
 
         Log("Enter player ", to_string(i+1), "'s name:");
@@ -1128,8 +1161,8 @@ class clsGamestate{
 
         clsUser newUser(name, _users.size() + 1, isCPU, _fleetConfig); // Create a new instance of a user with name and Id;
         registerUser(newUser); // register the new user;
-        userChoice = ' '; //reset userchoice;
-        isCPU = false; //reset isCPU;
+        userChoice = ' ';
+        isCPU = false;
       }
     }
 
@@ -1177,7 +1210,7 @@ class clsGamestate{
       if(userChoice == 'y'){
         ClearConsole();
         setState(1);
-        updateUsers(); // calling when stage == 1;
+        updateUsers(); // calling when stage == 1; //TODO: change to while loop
         updateUsers(); // calling when stage == 2;
         updateUsers(); // calling when stage == 3;
       }
@@ -1197,8 +1230,8 @@ class clsGamestate{
     void updateUsers(){
       if(_state == 1){ // if stage is 'placement' - get players to place ships;
         for(int i = 0; i < _users.size(); i++){
+          Log("Asking user " + _users[i].getName() + " to place their ships");
           _users[i].placeFleet(getBoardSize().x, getBoardSize().y); // get user to place their boats;
-          // Log(_users[i].getName() + " has finished placing their ships");
         }
         setState(2);
 
@@ -1260,7 +1293,7 @@ class clsGamestate{
               int lastTargetIndex = checkUserExistsById(_users[i].getLastTargetId()).second;
               bool lastTargetExists = checkUserExistsById(_users[i].getLastTargetId()).first;
               bool hit = false;
-              udtCoord attackCoord = { -1, -1 }; // TESTING - Initialise eith negative vals;
+              udtCoord attackCoord = { -1, -1 };
               
               //ADAPTIVE CPU - SELECT TARGET: 
               if(!lastTargetExists || !getUserByIndex(lastTargetIndex).isActive()){// If last Target isnt active or doesnt exist -> select new random target;
@@ -1286,27 +1319,27 @@ class clsGamestate{
               ////////////////
 
               // ADAPTIVE CPU - SELECT ATTACK COORDS;
-              if( // if lastHitCoord is invalid -> generate random attackCoord
-                !getUserByIndex(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, _users[i].getLastHitCoord().x, 'x') ||
-                !getUserByIndex(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, _users[i].getLastHitCoord().y, 'y') 
-                ){
-                  do {
-                    attackCoord = cpuGenerateRandCoords(getBoardSize().x, getBoardSize().y); // generate random attack coords;
-                  } while(!getUserByIndex(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, attackCoord.x, 'x') || //if x coord..
-                      !getUserByIndex(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, attackCoord.y, 'y') || //or y coord is invalid
-                      getUserByIndex(targetIndex).checkCollision(attackCoord.x, attackCoord.y, true)   //or the attack coord has already been attacked 
-                    );
+              //check if there is at least 1 item in potentials vector for user;
+              if(_users[i].getPotentialAttackCoords().size() == 0){
+                Log("NO POTENTIAL TARGETS... Selecting Random Target");//DEBUG
+                do {
+                  attackCoord = cpuGenerateRandCoords(getBoardSize().x, getBoardSize().y); // generate random attack coords;
+                } while(
+                  !getUserByIndex(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, attackCoord.x, 'x') || //if x coord..
+                  !getUserByIndex(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, attackCoord.y, 'y') || //or y coord is invalid
+                  getUserByIndex(targetIndex).checkCollision(attackCoord.x, attackCoord.y, true)   //or the attack coord has already been attacked 
+                  );
 
-                 } else { //if last hit coord is still valid -> get a new potential attack location based off of last hit;
-                  attackCoord = _users[i].cpuGenerateSmartCoords(); // return potential attack location;
-                }
+                } else { //if there are remaining potential targets -> select one from the vector
+                Log("Selecting from potential target list");
+                attackCoord = _users[i].cpuGenerateSmartCoords(); // return potential attack location;
+              }
 
               getUserByIndex(targetIndex).addAttacked(attackCoord.x, attackCoord.y); // add the validated attack coordinate to the targets board;
 
               if(getUserByIndex(targetIndex).getAttackedOrOccupied(attackCoord.x, attackCoord.y)){//if the attacked coord has hit...
                 hit = true;
-                _users[i].setLastHitCoord(attackCoord.x, attackCoord.y); // record the hit location to lastHitCoord for current user;
-                _users[i].cpuGeneratePotentialAttackCoords(getBoardSize().x, getBoardSize().y, getUserByIndex(targetIndex)); // build new potential hits based off of last hit
+                _users[i].cpuGeneratePotentialAttackCoords(getBoardSize().x, getBoardSize().y, attackCoord.x, attackCoord.y, getUserByIndex(targetIndex)); // build new potential hits based off of last hit
               }
               
               //PRINT USER INTERFACE
@@ -1315,16 +1348,19 @@ class clsGamestate{
               getUserByIndex(targetIndex).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
               printBoardKey();
               Log(setGreen(_users[i].getName()) + " attacked " + setRed(getUserByIndex(targetIndex).getName()) + " at: " + to_string(attackCoord.x) + ", " + to_string(attackCoord.y) + "\n");
+              _users[i].viewBoard(getBoardSize().x, getBoardSize().y); //DEBUG SHOWING CPU BOARD
               ////////////////
 
               if(hit){ // if the shot hit - print confirmation message;
                 Log("The shot " +  setRed("hit!"));
               } else { //if shot missed - reset last hit & potential attack coords;
                 Log("The shot " + setYellow("missed!"));
-                _users[i].clearPotentials();//reset potentials
-                _users[i].resetLastHitCoord();//reset last hit
+                // _users[i].clearPotentials();//reset potentials //DEBUG MIGHT NOT BE NEEDED
+                // _users[i].resetLastHitCoord();//reset last hit //DEBUG MIGHT NOT BE NEEDED
               }
               Log();
+
+              _users[i].printPotentials();
 
               yToContinue();
             }
@@ -1499,11 +1535,37 @@ int main(){
   clsShip cruiser("Cruiser", 3);
   clsShip patrolBoat("Patrol Boat", 2);
 
-  game -> registerShip(carrier); 
-  game -> registerShip(battleship); 
-  game -> registerShip(submarine); 
-  game -> registerShip(cruiser); 
-  game -> registerShip(patrolBoat); 
+  vector < clsShip > shipConfig;
 
-  game -> startNewGame();
+  shipConfig.push_back(carrier);
+  shipConfig.push_back(battleship);
+  shipConfig.push_back(submarine);
+  shipConfig.push_back(cruiser);
+  shipConfig.push_back(patrolBoat);
+
+  clsUser user1("Alex", 1, true, shipConfig);
+  clsUser user2("Sofia", 2, true, shipConfig);
+  clsUser user3("Bill", 3, true, shipConfig);
+  clsUser user4("Ted", 4, true, shipConfig);
+
+  game -> registerUser(user1);
+  game -> registerUser(user2);
+  game -> registerUser(user3);
+  game -> registerUser(user4);
+
+  game -> setPlayerCount(4);
+  game -> setBoardSize(7, 7);
+  game -> setState(1);
+
+  game -> updateUsers();
+  game -> updateUsers();
+  game -> updateUsers();
+
+  // game -> registerShip(carrier); 
+  // game -> registerShip(battleship); 
+  // game -> registerShip(submarine); 
+  // game -> registerShip(cruiser); 
+  // game -> registerShip(patrolBoat); 
+
+  // game -> startNewGame();
 }
