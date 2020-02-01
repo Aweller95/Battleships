@@ -1134,11 +1134,17 @@ class clsGamestate{
     void initPlayerCount(){
       int playerCount;
 
-      ClearConsole();
-      printConfigTitle();
+      do{
+        ClearConsole();
+        printConfigTitle();
 
-      Log("Enter the number of players: ");
-      cin >> playerCount;
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+        Log("Enter the number of players: ");
+        cin >> playerCount;
+
+      } while (!playerCount || playerCount < 2);
       
       setPlayerCount(playerCount);
     }
@@ -1187,18 +1193,37 @@ class clsGamestate{
 
     void initBoardSize(){
       int x, y;
+      bool firstRun = true;
 
-      ClearConsole();
-      printConfigTitle();
+      do {
+        ClearConsole();
+        printConfigTitle();
 
-      Log("(Recommended board size: " + setBrightGreen("10") + " x " + setCyan("10") + ")");
-      Log();
+        Log("(Recommended board size: " + setBrightGreen(to_string(_maxShipLength * 2)) + " x " + setCyan(to_string(_maxShipLength * 2)) + ")");
+        Log();
 
-      Log("Please enter the size of the " + setBrightGreen("X") + " axis for player boards");
-      cin >> x;
+        if(firstRun){
+          Log("Please enter the size of the " + setBrightGreen("X") + " axis for player boards");
+          cin >> x;
 
-      Log("Please enter the size of the " + setCyan("Y") + " axis for player boards");
-      cin >> y;
+          Log("Please enter the size of the " + setCyan("Y") + " axis for player boards");
+          cin >> y;
+        } else {
+          Log(setRed("Board cannot be smaller than the number of ships it must contain"));
+          Log();
+
+          Log("Please enter a new size of the " + setBrightGreen("X") + " axis for player boards");
+          cin.clear();
+          cin.ignore(numeric_limits<streamsize>::max(), '\n');
+          cin >> x;
+
+          Log("Please enter a new size of the " + setCyan("Y") + " axis for player boards");
+          cin.clear();
+          cin.ignore(numeric_limits<streamsize>::max(), '\n');
+          cin >> y;
+        }
+        firstRun = false;
+      } while((x < _maxShipLength && y < _maxShipLength) || ((x * y) < _maxOccupied));
 
       setBoardSize(x, y);
     }
@@ -1584,24 +1609,33 @@ class clsGamestate{
     void readConfig(){
       ifstream cFile; //define a new filestream;
       string _currentLine;
+      int _longestShip = 0;
+      int _toBeOccupied = 0;
 
       cFile.open(configFile); //open the config file with filestream;
 
       while(!cFile.eof()){ //while there are remaining lines in the file...
         getline(cFile, _currentLine); //assign the current line to '_currentLine'
-
         pair < string, int > _parsedLine = parse(_currentLine); // parse the current line and store the result as a pair in _parsedLine;
+
+        if(_parsedLine.second > _longestShip) _longestShip = _parsedLine.second;
+
+        _toBeOccupied += _parsedLine.second; // add the length of the current ship to _toBeOccupied variable;
 
         registerShip(clsShip(_parsedLine.first, _parsedLine.second)); // construct a new ship from the parsed line and register it to the gamestate;
       }
-      
+
+      _maxShipLength = _longestShip; // set _maxShipLength;
+      _maxOccupied = _toBeOccupied;
+
       cFile.close();
     }
 
   private:
     int _state = 0;
-    int _activePlayer = 0;
     int _playerCount;
+    int _maxShipLength;
+    int _maxOccupied;
     vector < clsUser > _users;
     vector < clsShip > _fleetConfig;
     udtCoord _boardSize;
