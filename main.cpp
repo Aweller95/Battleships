@@ -3,9 +3,13 @@
 #include <vector>
 #include <cmath>
 #include <ctime>
+#include <regex>
 #include <typeinfo>
 #include <limits>
 #include <unistd.h>
+#include <fstream>
+
+#define configFile "config.csv"
 
 using namespace std;
 
@@ -302,31 +306,6 @@ void progressBar(int width){
   cout << endl;
   cout << "\e[?25h"; // show the cursor
 }
-
-string cleanString(string text){
-  string _local = text;
-  cout << endl << "BEFORE: [" <<_local << "]\n";//TODO: remove this DEBUG
-
-  for(int i = 0; i < _local.length(); i++){
-    if(_local[i] == ' ' && _local[i+1] != ' '){//if singlespace;
-      _local.erase(i, 1);
-    }else if(_local[i] == ' ' && _local[i+1] == ' '){ // if doublespace;
-      _local.erase(i, 2);
-    } 
-  }
-
-  if(_local[0] == ' '){
-    _local.erase(0, 1);
-  }
-
-  if(_local[_local.size()] == ' '){
-    _local.erase(_local.size(), 1);
-  }
-
-  cout << "AFTER : [" <<_local << "]"; // TODO: Remove this DEBUG
-
-  return _local;
-};
 
 void printBoardKey(){
   Log("Key:");
@@ -1270,28 +1249,30 @@ class clsGamestate{
               pair <bool, int> foundUser;
               int targetId = -1;
 
-              ClearConsole();
-              printBattleTitle();
-              printAllUsers(_users[i].getId());
 
-              // VALIDATE PLAYER ID INPUT
-              Log();
-              Log(setGreen(_users[i].getName()), ", enter the " + setYellow("ID") + " of the player you want to attack: ");
-              cin >> targetId;
-              foundUser = checkUserExistsById(targetId);
-
-              while(!cin || _users[i].getId() == targetId || !foundUser.first){// ask for a target id while the id is invalid / the id is of the current player / the type of input is invalid;
-                cout << "\e[2F"; //move cursor up 4 lines;
-                cout << "\e[0J"; // clear screen from cursor down;
-                // Log();
-                Log(_users[i].getName() + ", enter a " + setRed("valid") + " user " + setYellow("ID"));
-
-                cin.clear();
-                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+              // PLAYER SELECT TARGET
+              if(getActivePlayers() > 2){ //if there are more than 2 players, get user to enter a target;
+                printAllUsers(_users[i].getId());
+                Log();
+                Log(setGreen(_users[i].getName()), ", enter the " + setYellow("ID") + " of the player you want to attack: ");
                 cin >> targetId;
                 foundUser = checkUserExistsById(targetId);
+
+                while(!cin || _users[i].getId() == targetId || !foundUser.first){ // ask for a target id while the id is invalid / the id is of the current player / the type of input is invalid;
+                  cout << "\e[2F"; //move cursor up 4 lines;
+                  cout << "\e[0J"; // clear screen from cursor down;
+                  Log(_users[i].getName() + ", enter a " + setRed("valid") + " user " + setYellow("ID"));
+
+                  cin.clear();
+                  cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                  cin >> targetId;
+                  foundUser = checkUserExistsById(targetId);
+                }
+              } else { // if there is only one potential target, select automatically;
+                targetId = cpuSelectRandomTarget(getActivePlayers(), _users[i].getId()); // get the id for the other player automatically;
+                foundUser = checkUserExistsById(targetId);
               }
-              ////
+              ///////////////////////////
 
               ClearConsole();
               printBattleTitle();
@@ -1340,12 +1321,10 @@ class clsGamestate{
               Log();
               Log("Thinking. . .");
               progressBar((getBoardSize().x) * 2); // show CPU is thinking
-              ////////////////
+              ///////////////////////
 
               // ADAPTIVE CPU - SELECT ATTACK COORDS;
-              //check if there is at least 1 item in potentials vector for user;
-              if(_users[i].getPotentialAttackCoords().size() == 0){
-                Log("NO POTENTIAL TARGETS... Selecting Random Target");//DEBUG
+              if(_users[i].getPotentialAttackCoords().size() == 0){ //check if there is at least 1 item in potentials vector for user;
                 do {
                   attackCoord = cpuGenerateRandCoords(getBoardSize().x, getBoardSize().y); // generate random attack coords;
                 } while(
@@ -1355,8 +1334,7 @@ class clsGamestate{
                   );
 
                 } else { //if there are remaining potential targets -> select one from the vector
-                Log("Selecting from potential target list");
-                attackCoord = _users[i].cpuGenerateSmartCoords(); // return potential attack location;
+                  attackCoord = _users[i].cpuGenerateSmartCoords(); // return potential attack location;
               }
 
               getUserByIndex(targetIndex).addAttacked(attackCoord.x, attackCoord.y); // add the validated attack coordinate to the targets board;
@@ -1365,6 +1343,7 @@ class clsGamestate{
                 hit = true;
                 _users[i].cpuGeneratePotentialAttackCoords(getBoardSize().x, getBoardSize().y, attackCoord.x, attackCoord.y, getUserByIndex(targetIndex)); // build new potential hits based off of last hit
               }
+              ///////////////////////
               
               //PRINT USER INTERFACE
               ClearConsole();
@@ -1372,8 +1351,7 @@ class clsGamestate{
               getUserByIndex(targetIndex).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
               printBoardKey();
               Log(setGreen(_users[i].getName()) + " attacked " + setRed(getUserByIndex(targetIndex).getName()) + " at: " + to_string(attackCoord.x) + ", " + to_string(attackCoord.y) + "\n");
-              _users[i].viewBoard(getBoardSize().x, getBoardSize().y); //DEBUG SHOWING CPU BOARD
-              ////////////////
+              ///////////////////////
 
               if(hit){ // if the shot hit - print confirmation message;
                 Log("The shot " +  setRed("hit!"));
@@ -1534,6 +1512,55 @@ class clsGamestate{
       _state = i;
     }
 
+    string cleanString(string text){ // clean all leading, double and trailing spaces from a string;
+      string _local = text;
+
+      _local = regex_replace(_local, regex("^ +| +$|( ) +"), "$1");
+      // (^ +|) match the beginning of the string, if it has one or more whitespaces, OR;
+      // ( +$|) match the end of the string, if it has one or more whitespaces, OR;
+      // (( ) +) match any double spaces within the string
+
+      return _local;
+    };
+
+    pair <string, int> parse(string _line){
+      pair < string, int > _result;
+      string values[2];
+      int _currentVal = 0;
+
+      for(int i = 0; i < _line.length(); i++){
+        if(_currentVal > 2) break;
+
+        if(_line[i] == ','){ // if the current char is a separator increase _currentVal + 1;
+          _currentVal++;
+        } else {
+          values[_currentVal] += _line[i]; // add the current char to values;
+        }
+      }
+
+      _result.first = cleanString(values[0]); // clean the string containing the ship name;
+      _result.second = stoi(values[1]); // convert the ship length from string to int;
+
+      return _result;
+    }
+
+    void readConfig(){
+      ifstream cFile; //define a new filestream;
+      string _currentLine;
+
+      cFile.open(configFile); //open the config file with filestream;
+
+      while(!cFile.eof()){ //while there are remaining lines in the file...
+        getline(cFile, _currentLine); //assign the current line to '_currentLine'
+
+        pair < string, int > _parsedLine = parse(_currentLine); // parse the current line and store the result as a pair in _parsedLine;
+
+        registerShip(clsShip(_parsedLine.first, _parsedLine.second)); // construct a new ship from the parsed line and register it to the gamestate;
+      }
+      
+      cFile.close();
+    }
+
   private:
     int _state = 0;
     int _activePlayer = 0;
@@ -1551,43 +1578,6 @@ int main(){
   clsGamestate* game; // set variable 'Gamestate' as a pointer;
   game = clsGamestate::getInstance(); // assign the instance of clsGamestate;
 
-  clsShip carrier("Aircraft Carrier", 5);
-  clsShip battleship("Battleship", 4);
-  clsShip submarine("Submarine", 3);
-  clsShip cruiser("Cruiser", 3);
-  clsShip patrolBoat("Patrol Boat", 2);
-
-  vector < clsShip > shipConfig;
-
-  shipConfig.push_back(carrier);
-  shipConfig.push_back(battleship);
-  shipConfig.push_back(submarine);
-  shipConfig.push_back(cruiser);
-  shipConfig.push_back(patrolBoat);
-
-  clsUser user1("Alex", 1, false, shipConfig);
-  clsUser user2("Sofia", 2, false, shipConfig);
-  clsUser user3("Bill", 3, true, shipConfig);
-  clsUser user4("Ted", 4, true, shipConfig);
-
-  game -> registerUser(user1);
-  game -> registerUser(user2);
-  // game -> registerUser(user3);
-  // game -> registerUser(user4);
-
-  game -> setPlayerCount(4);
-  game -> setBoardSize(7, 7);
-  game -> setState(1);
-
-  game -> updateUsers();
-  game -> updateUsers();
-  game -> updateUsers();
-
-  // game -> registerShip(carrier); 
-  // game -> registerShip(battleship); 
-  // game -> registerShip(submarine); 
-  // game -> registerShip(cruiser); 
-  // game -> registerShip(patrolBoat); 
-
-  // game -> startNewGame();
+  game -> readConfig(); // read the config.csv file for ships & create the classes for each ship;
+  game -> startNewGame();// start a new game;
 }
