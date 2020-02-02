@@ -78,7 +78,7 @@ class clsUtilities{
     return random_number;
   }
 
-  void yToContinue(){ // TODO: Move to state
+  void yToContinue(){
     char input;
     
     do {
@@ -87,7 +87,7 @@ class clsUtilities{
     } while(input != 'y');
   }
 
-  void enterToContinue(){ // TODO: move to state
+  void enterToContinue(){
     Log("Press enter to continue...");
     cin.ignore();
   }
@@ -448,6 +448,14 @@ class clsUser : clsUtilities{ //Observer - inheirits utilities class
 
     bool isActive(){
       return _active;
+    }
+
+    bool getAnnounced(){
+      return _announced;
+    }
+
+    void setAnnounced(){
+      _announced = true;
     }
 
     vector < udtCoord > getOccupied(){
@@ -879,7 +887,7 @@ class clsUser : clsUtilities{ //Observer - inheirits utilities class
           if(x == _ships[i].getBulkheads()[j].x && y == _ships[i].getBulkheads()[j].y){ // if the passed in coords match a bulkhead;
             missed = false;
             roundEvents.push_back(getName() + "'s " + _ships[i].getName() + " has been " + setRed("hit!")); // If a ship has been hit, add it to the message queue;
-            _ships[i].getBulkheads()[j].hit = true; // set the current bulkheads status hit = true; TODO : may not be required DEBUG
+            // _ships[i].getBulkheads()[j].hit = true; // set the current bulkheads status hit = true; TODO : may not be required DEBUG
             _ships[i].decrementHealth(); // decrease the current ships health by 1;
           }
         }
@@ -962,6 +970,13 @@ class clsUser : clsUtilities{ //Observer - inheirits utilities class
       return _cpuPotentialAttack;
     }
 
+    void printPotentialAttackCoords(){ // DEBUG FUNCTION
+      Log("Printing potential attack coordinates");
+      for(int i = 0; i < _cpuPotentialAttack.size(); i++){
+        cout << _cpuPotentialAttack[i].x << ", " << _cpuPotentialAttack[i].y << endl;
+      }
+    }
+
     bool checkPotentialsIfExists(udtCoord coord){ // Checks if the passed in coord is already in the potentials vector;
       bool result = false;
 
@@ -973,7 +988,7 @@ class clsUser : clsUtilities{ //Observer - inheirits utilities class
       return result;
     }
 
-    void cpuGeneratePotentialAttackCoords(int xSize, int ySize, int x, int y, clsUser target){
+    void cpuGeneratePotentialAttackCoords(int xSize, int ySize, int x, int y, clsUser &target){
       udtCoord _temp = { x, y };
 
       if((_temp.x + 1) <= xSize && !target.hasBeenAttacked(_temp.x+1, _temp.y)){ //if adding +1 to Xcoord of last hit fits on board;
@@ -1009,16 +1024,23 @@ class clsUser : clsUtilities{ //Observer - inheirits utilities class
       }
     }
 
-    udtCoord cpuGenerateSmartCoords(){
+    udtCoord cpuGenerateSmartCoords(clsUser &target){
       udtCoord _tempCoord;
-      int randItem = rollDice(_cpuPotentialAttack.size());
-      int index = randItem - 1; //get random number based on amount of potentials;
-
-      _tempCoord.x = _cpuPotentialAttack[index].x;
-      _tempCoord.y = _cpuPotentialAttack[index].y;
-
-      _cpuPotentialAttack.erase(_cpuPotentialAttack.begin() + index); // delete the selected coordinate from potentials;
+      int randItem;
+      int index; 
       
+      do{ 
+        Log("Coord has been attacked already");
+
+        randItem = rollDice(_cpuPotentialAttack.size()); //get random number based on amount of potentials;
+        index = randItem - 1;
+
+        _tempCoord.x = _cpuPotentialAttack[index].x;
+        _tempCoord.y = _cpuPotentialAttack[index].y;
+
+        _cpuPotentialAttack.erase(_cpuPotentialAttack.begin() + index); // delete the selected coordinate from potentials;
+      } while(target.hasBeenAttacked(_tempCoord.x, _tempCoord.y)); // If the coord has been attacked already;
+
       return _tempCoord; //return the randomly selected coord;
     }
 
@@ -1050,6 +1072,7 @@ class clsUser : clsUtilities{ //Observer - inheirits utilities class
     vector < clsShip > _ships;
     int _lastTarget = -1;
     bool _active = true;
+    bool _announced = false;
     bool _cpu = false;
 };
 
@@ -1237,11 +1260,10 @@ class clsGamestate : clsUtilities{
       } else if(_state == 2){ // if stage is 'play' - cycle through users to choose target & attack;
         while(getActivePlayers() > 1){ // while there is more than 1 active player
           for(int i = 0; i < _users.size(); i++){ // for each user
-            if(_users[i].calculateHealth() == 0){ // if the user is dead;
-                _users[i].setInactive(); //set them as inactive
-                roundEvents.push_back(setRed("!!! All of " + _users[i].getName() + "'s ships have been destroyed !!!"));//push the event to the event queue;
 
-              }else if(_users[i].isActive() && !_users[i].isCPU()){ // if the player is active & not a CPU player;
+            if(_users[i].calculateHealth() == 0) goto endOfTurn; // if user is dead, skip to end of turn;
+
+            if(_users[i].isActive() && !_users[i].isCPU()){ // if the player is active & not a CPU player;
               pair <bool, int> foundUser;
               int targetId = -1;
 
@@ -1286,7 +1308,11 @@ class clsGamestate : clsUtilities{
 
               udtCoord validatedAttackCoord = selectTargetCoords(getUserByIndex(foundUser.second), getBoardSize().x, getBoardSize().y); // get user to select attack coords;
               getUserByIndex(foundUser.second).addAttacked(validatedAttackCoord.x, validatedAttackCoord.y); // add the validated attack coordinate to the targets board;
-              
+              if(getUserByIndex(foundUser.second).calculateHealth() == 0) {
+                getUserByIndex(foundUser.second).setInactive(); // if the attacked user has been killed -> set them as inactive;
+                roundEvents.push_back(setRed("!!! All of " + getUserByIndex(foundUser.second).getName() + "'s ships have been destroyed !!!"));//push the event to the event queue;
+              }
+
               ClearConsole();
               printBattleTitle();
 
@@ -1294,9 +1320,7 @@ class clsGamestate : clsUtilities{
               _users[i].viewBoard(getBoardSize().x, getBoardSize().y); // View current player board;
               printBoardKey();
 
-              _users[i].printSunk(getBoardSize().x, getBoardSize().y); //DEBUG REMOVE TODO
-
-              yToContinue();
+              // yToContinue();
 
             } else if(_users[i].isActive() && _users[i].isCPU()){ // if current player is active & isCPU
               int targetIndex;
@@ -1339,10 +1363,14 @@ class clsGamestate : clsUtilities{
                   );
 
                 } else { //if there are remaining potential targets -> select one from the vector
-                  attackCoord = _users[i].cpuGenerateSmartCoords(); // return potential attack location;
+                  attackCoord = _users[i].cpuGenerateSmartCoords(getUserByIndex(targetIndex)); // return potential attack location;
               }
 
               getUserByIndex(targetIndex).addAttacked(attackCoord.x, attackCoord.y); // add the validated attack coordinate to the targets board;
+              if(getUserByIndex(targetIndex).calculateHealth() == 0) {
+                getUserByIndex(targetIndex).setInactive(); // if the attacked user has been killed -> set them as 
+                roundEvents.push_back(setRed("!!! All of " + getUserByIndex(targetIndex).getName() + "'s ships have been destroyed !!!"));//push the event to the event queue;
+              }
 
               if(getUserByIndex(targetIndex).getAttackedOrOccupied(attackCoord.x, attackCoord.y)){//if the attacked coord has hit...
                 hit = true;
@@ -1356,7 +1384,6 @@ class clsGamestate : clsUtilities{
               getUserByIndex(targetIndex).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
               printBoardKey();
               Log(setGreen(_users[i].getName()) + " attacked " + setRed(getUserByIndex(targetIndex).getName()) + " at: " + to_string(attackCoord.x) + ", " + to_string(attackCoord.y) + "\n");
-              _users[i].viewBoard(getBoardSize().x, getBoardSize().y); //DEBUG TODO
               ///////////////////////
 
               if(hit){ // if the shot hit - print confirmation message;
@@ -1366,11 +1393,11 @@ class clsGamestate : clsUtilities{
               }
               Log();
 
-              _users[i].printSunk(getBoardSize().x, getBoardSize().y); //DEBUG REMOVE TODO
-              
-              yToContinue();
             }
+            endOfTurn:
+              yToContinue();
           }
+
           //End of round
           ClearConsole();
           printRoundOverTitle();
