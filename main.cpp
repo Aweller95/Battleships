@@ -17,7 +17,7 @@ using namespace std;
 Name: Alexander Weller
 email: alexander.weller@ada.ac.uk
 AI Design Document: https://docs.google.com/spreadsheets/d/1qIGcY03PQ1ut_RpV3RzkFJiKKVMFKJbYgjXU_Tgb5kQ/edit?usp=sharing
---> I have also thought about x, y z for AI targeting algorithm;
+--> I have also thought about x, y, z for AI targeting algorithm;
 
 Welcome to Alex Wellers...
    ___         __   __   __           __    _          
@@ -35,11 +35,11 @@ class clsShip;
 class clsUser;
 class clsGamestate;
 
-const int NOVALUE = -1;
+vector <string> roundEvents; // stores strings that describe various events that occur during a round;
 
 struct bulkhead{
-  int x = NOVALUE;
-  int y = NOVALUE;
+  int x = -1;
+  int y = -1;
   bool hit = false;
   bool sunk = false;
 };
@@ -49,8 +49,6 @@ struct udtCoord{
   int y;
 };
 
-vector <string> roundEvents; // stores strings that describe various events that occur during a round;
-
 //UTILITIES CLASS
 /* 
 I am using a naming scheme for helper functions to start with capital letters. This is to allow for easy differentiation between other function classifications.
@@ -58,330 +56,279 @@ I am using a naming scheme for helper functions to start with capital letters. T
 - ClearConsole() prints an escape sequence using `cout` which will clear all data currently displayed on the console.
 */
 
-// class clsUtilities{ USE THIS TO BE INHERITED BY SUBCLASSES ONCE TESTED
-//   protected:
-//     void Log(string message1 = "", string message2 = "", string message3 = ""){
-//       cout << message1 << message2 << message3 << endl;
-//     }
+class clsUtilities{
+  protected:
 
-//     void ClearConsole(){
-//       cout << "\033[2J\033[0;0H"; // escape sequence that clears the console;
-//     }
-// };
-
-void Log(string message1 = "", string message2 = "", string message3 = ""){
+  void Log(string message1 = "", string message2 = "", string message3 = ""){
   cout << message1 << message2 << message3 << endl;
-}
-
-int getIntLength(int i){ // TODO: can go in utils class
-  return trunc(log10(i)) + 1;
-  // using log10 -> returns the value y in base 10. 
-  // using trunc -> returns a rounded down result of the log10 function; 
-  // example: (log10(100) = 2) + 1 = 3 -> 100 is a 3 digit number;
-}
-
-int rollDice(int mod){
-  // call the rand() function to get a random number
-  // the parameter 'mod' is used to calculate the modulus of the result + 1; 
-  // if mod = 10, the random number will be between 1 & 10;
-  int random_number = (rand() % mod) + 1; 
-  return random_number;
-}
-
-void printRoundEvents(){ // TODO: move to state
-  Log("Round History");
-  Log("________________________________");
-  Log("════════════════════════════════");
-  for(int i = 0; i < roundEvents.size(); i++){
-    cout << to_string(i+1) + ". " << roundEvents[i] << "\n";
   }
-  Log("________________________________");
-  Log("════════════════════════════════");
-}
 
-void yToContinue(){ // TODO: Move to state
-  char input;
-  Log("Continue...? (y)");
-  
-  do {
-    cin >> input;
-  } while(input != 'y');
-}
+  int getIntLength(int i){
+    return trunc(log10(i)) + 1;
+    // using log10 -> returns the value y in base 10. 
+    // using trunc -> returns a rounded down result of the log10 function; 
+    // example: (log10(100) = 2) + 1 = 3 -> 100 is a 3 digit number;
+  }
 
-void enterToContinue(){ // TODO: move to state
-  Log("Press enter to continue...");
-  cin.ignore();
-}
+  int rollDice(int mod){
+    // call the rand() function to get a random number
+    // the parameter 'mod' is used to calculate the modulus of the result + 1; 
+    // if mod = 10, the random number will be between 1 & 10;
+    int random_number = (rand() % mod) + 1; 
+    return random_number;
+  }
 
-void printRed(string message){
-  cout << "\x1B[31m" + message + "\033[0m";
-}
-
-string setRed(string message){
-  return "\x1B[31m" + message + "\033[0m";
-}
-
-string setBrightGreen(string message){
-  return "\x1B[92m" + message + "\033[0m";
-}
-
-string setBrightGreen(char letter){ 
-  string result = "\x1B[92m";
-  string escSeq1 = "\033[0m";
-
-  result.push_back(letter);
-
-  return result + escSeq1;
-}
-
-string setCyan(string message){
-  return "\x1B[96m" + message + "\033[0m";
-}
-
-void printGreen(string message){
-  cout << "\x1B[32m" + message + "\033[0m";
-}
-
-string setGreen(string message){
-  return "\x1B[32m" + message + "\033[0m";
-}
-
-void printOrange(string message){
-  cout << "\x1B[33m" + message + "\033[0m";
-}
-
-string setOrange(string message){
-  return "\x1B[33m" + message + "\033[0m";
-}
-
-string setYellow(string message){
-  return "\x1B[93m" + message + "\033[0m";
-}
-
-void printTitle(){  
-  string line1 = "   ___         __   __   __           __    _          ";
-  string line2 = "  / _ ) ___ _ / /_ / /_ / /___  ___  / /   (_)___   ___";
-  string line3 = " / _  |/ _ `// __// __// // -_)(_-< / _ \\ / // _ \\ (_-<";
-  string line4 = "/____/ \\_,_/ \\__/ \\__//_/ \\__//___//_//_//_// .__//___/";
-  string line5 = "                                           /_/         ";   
-
-  Log(setGreen(line1));
-  Log(setGreen(line2));
-  Log(setGreen(line3));
-  Log(setGreen(line4));
-  Log(setGreen(line5));
-  Log();
-}
-
-void printConfigTitle(){  
-
-  string line1 = "  _____             ___ _      ";
-  string line2 = " / ___/___   ___   / _/(_)___ _";
-  string line3 = "/ /__ / _ \\ / _ \\ / _// // _ `/";
-  string line4 = "\\___/ \\___//_//_//_/ /_/ \\_, / ";
-  string line5 = "                        /___/  ";
-
-  Log(setGreen(line1));
-  Log(setGreen(line2));
-  Log(setGreen(line3));
-  Log(setGreen(line4));
-  Log(setGreen(line5));
-  Log();
-}
-
-void printPlayersTitle(){
-  string line1 = "   ___   __                         ";
-  string line2 = "  / _ \\ / /___ _ __ __ ___  ____ ___";
-  string line3 = " / ___// // _ `// // // -_)/ __/(_-<";
-  string line4 = "/_/   /_/ \\_,_/ \\_, / \\__//_/  /___/";
-  string line5 = "               /___/                ";
-
-  Log(setGreen(line1));
-  Log(setGreen(line2));
-  Log(setGreen(line3));
-  Log(setGreen(line4));
-  Log(setGreen(line5));
-  Log();
-}
-
-void printPlacementTitle(){
-  string line1 = "   ___   __                                 __ ";
-  string line2 = "  / _ \\ / /___ _ ____ ___  __ _  ___  ___  / /_";
-  string line3 = " / ___// // _ `// __// -_)/  ' \\/ -_)/ _ \\/ __/";
-  string line4 = "/_/   /_/ \\_,_/ \\__/ \\__//_/_/_/\\__//_//_/\\__/ ";
-                            
-  Log(setGreen(line1));
-  Log(setGreen(line2));
-  Log(setGreen(line3));
-  Log(setGreen(line4));
-  Log();                 
-}
-
-void printSelectTargetTitle(){
-  string line1 = "   ____      __           __    ______                       __  ";
-  string line2 = "  / __/___  / /___  ____ / /_  /_  __/___ _ ____ ___ _ ___  / /_ ";
-  string line3 = " _\\ \\ / -_)/ // -_)/ __// __/   / /  / _ `// __// _ `// -_)/ __/ ";
-  string line4 = "/___/ \\__//_/ \\__/ \\__/ \\__/   /_/   \\_,_//_/   \\_, / \\__/ \\__/  ";
-  string line5 = "                                               /___/             ";
-  
-  Log(setGreen(line1));
-  Log(setGreen(line2));
-  Log(setGreen(line3));
-  Log(setGreen(line4));
-  Log(setGreen(line5));
-  Log();  
-}
-
-void printBattleTitle(){
-  string line1 = "   ___         __   __   __    ";
-  string line2 = "  / _ ) ___ _ / /_ / /_ / /___ ";
-  string line3 = " / _  |/ _ `// __// __// // -_)";
-  string line4 = "/____/ \\_,_/ \\__/ \\__//_/ \\__/ ";
-                               
-  Log(setGreen(line1));
-  Log(setGreen(line2));
-  Log(setGreen(line3));
-  Log(setGreen(line4));
-  Log();  
-}
-
-void printRoundOverTitle(){
-  string line1 = "   ___                      __  ____                 ";
-  string line2 = "  / _ \\ ___  __ __ ___  ___/ / / __ \\ _  __ ___  ____";
-  string line3 = " / , _// _ \\/ // // _ \\/ _  / / /_/ /| |/ // -_)/ __/";
-  string line4 = "/_/|_| \\___/\\_,_//_//_/\\_,_/  \\____/ |___/ \\__//_/   ";
-                                                     
-
-  Log(setGreen(line1));
-  Log(setGreen(line2));
-  Log(setGreen(line3));
-  Log(setGreen(line4));
-  Log(); 
-}
-
-void printGameOverTitle(){
-  string line1 = "  _____                   ____                   __";
-  string line2 = " / ___/___ _ __ _  ___   / __ \\ _  __ ___  ____ / /";
-  string line3 = "/ (_ // _ `//  ' \\/ -_) / /_/ /| |/ // -_)/ __//_/ ";
-  string line4 = "\\___/ \\_,_//_/_/_/\\__/  \\____/ |___/ \\__//_/  (_)  ";
-                                                   
-
-  Log(setGreen(line1));
-  Log(setGreen(line2));
-  Log(setGreen(line3));
-  Log(setGreen(line4));
-  Log(); 
-}
-
-void printReadyTitle(){
-  string line1 = "   ___                 __      ___ ";
-  string line2 = "  / _ \\ ___  ___ _ ___/ /__ __/__ \\";
-  string line3 = " / , _// -_)/ _ `// _  // // / /__/";
-  string line4 = "/_/|_| \\__/ \\_,_/ \\_,_/ \\_, / (_)  ";
-  string line5 = "                       /___/       ";
-  
-  Log(setGreen(line1));
-  Log(setGreen(line2));
-  Log(setGreen(line3));
-  Log(setGreen(line4));
-  Log(setGreen(line5));
-  Log();     
-}
-
-void ClearConsole(){
-  cout << "\033[2J\033[0;0H"; // escape sequence that clears the console;
-}
-
-void progressBar(int width){
-  float progress = 0.0;
-
-  cout << "\e[?25l"; //Hide the cursor;
-  
-  while (progress < 1.01) {
-    int barWidth = width;
-
-    cout << setBrightGreen("[");
-    int pos = barWidth * progress;
+  void yToContinue(){ // TODO: Move to state
+    char input;
     
-    for (int i = 0; i < barWidth; ++i) {
-      if (i < pos){
-        cout << setGreen("=");
-      } else if (i == pos) {
-        cout << setGreen(">");
-      } else { 
-        cout << " ";
+    do {
+      Log("Continue...? (y)");
+      cin >> input;
+    } while(input != 'y');
+  }
+
+  void enterToContinue(){ // TODO: move to state
+    Log("Press enter to continue...");
+    cin.ignore();
+  }
+
+  void printRed(string message){
+    cout << "\x1B[31m" + message + "\033[0m";
+  }
+
+  string setRed(string message){
+    return "\x1B[31m" + message + "\033[0m";
+  }
+
+  string setBrightGreen(string message){
+    return "\x1B[92m" + message + "\033[0m";
+  }
+
+  string setBrightGreen(char letter){ 
+    string result = "\x1B[92m";
+    string escSeq1 = "\033[0m";
+
+    result.push_back(letter);
+
+    return result + escSeq1;
+  }
+
+  string setCyan(string message){
+    return "\x1B[96m" + message + "\033[0m";
+  }
+
+  void printGreen(string message){
+    cout << "\x1B[32m" + message + "\033[0m";
+  }
+
+  string setGreen(string message){
+    return "\x1B[32m" + message + "\033[0m";
+  }
+
+  void printOrange(string message){
+    cout << "\x1B[33m" + message + "\033[0m";
+  }
+
+  string setOrange(string message){
+    return "\x1B[33m" + message + "\033[0m";
+  }
+
+  string setYellow(string message){
+    return "\x1B[93m" + message + "\033[0m";
+  }
+
+  void printTitle(){  
+    string line1 = "   ___         __   __   __           __    _          ";
+    string line2 = "  / _ ) ___ _ / /_ / /_ / /___  ___  / /   (_)___   ___";
+    string line3 = " / _  |/ _ `// __// __// // -_)(_-< / _ \\ / // _ \\ (_-<";
+    string line4 = "/____/ \\_,_/ \\__/ \\__//_/ \\__//___//_//_//_// .__//___/";
+    string line5 = "                                           /_/         ";   
+
+    Log(setGreen(line1));
+    Log(setGreen(line2));
+    Log(setGreen(line3));
+    Log(setGreen(line4));
+    Log(setGreen(line5));
+    Log();
+  }
+
+  void printConfigTitle(){  
+
+    string line1 = "  _____             ___ _      ";
+    string line2 = " / ___/___   ___   / _/(_)___ _";
+    string line3 = "/ /__ / _ \\ / _ \\ / _// // _ `/";
+    string line4 = "\\___/ \\___//_//_//_/ /_/ \\_, / ";
+    string line5 = "                        /___/  ";
+
+    Log(setGreen(line1));
+    Log(setGreen(line2));
+    Log(setGreen(line3));
+    Log(setGreen(line4));
+    Log(setGreen(line5));
+    Log();
+  }
+
+  void printPlayersTitle(){
+    string line1 = "   ___   __                         ";
+    string line2 = "  / _ \\ / /___ _ __ __ ___  ____ ___";
+    string line3 = " / ___// // _ `// // // -_)/ __/(_-<";
+    string line4 = "/_/   /_/ \\_,_/ \\_, / \\__//_/  /___/";
+    string line5 = "               /___/                ";
+
+    Log(setGreen(line1));
+    Log(setGreen(line2));
+    Log(setGreen(line3));
+    Log(setGreen(line4));
+    Log(setGreen(line5));
+    Log();
+  }
+
+  void printPlacementTitle(){
+    string line1 = "   ___   __                                 __ ";
+    string line2 = "  / _ \\ / /___ _ ____ ___  __ _  ___  ___  / /_";
+    string line3 = " / ___// // _ `// __// -_)/  ' \\/ -_)/ _ \\/ __/";
+    string line4 = "/_/   /_/ \\_,_/ \\__/ \\__//_/_/_/\\__//_//_/\\__/ ";
+                              
+    Log(setGreen(line1));
+    Log(setGreen(line2));
+    Log(setGreen(line3));
+    Log(setGreen(line4));
+    Log();                 
+  }
+
+  void printSelectTargetTitle(){
+    string line1 = "   ____      __           __    ______                       __  ";
+    string line2 = "  / __/___  / /___  ____ / /_  /_  __/___ _ ____ ___ _ ___  / /_ ";
+    string line3 = " _\\ \\ / -_)/ // -_)/ __// __/   / /  / _ `// __// _ `// -_)/ __/ ";
+    string line4 = "/___/ \\__//_/ \\__/ \\__/ \\__/   /_/   \\_,_//_/   \\_, / \\__/ \\__/  ";
+    string line5 = "                                               /___/             ";
+    
+    Log(setGreen(line1));
+    Log(setGreen(line2));
+    Log(setGreen(line3));
+    Log(setGreen(line4));
+    Log(setGreen(line5));
+    Log();  
+  }
+
+  void printBattleTitle(){
+    string line1 = "   ___         __   __   __    ";
+    string line2 = "  / _ ) ___ _ / /_ / /_ / /___ ";
+    string line3 = " / _  |/ _ `// __// __// // -_)";
+    string line4 = "/____/ \\_,_/ \\__/ \\__//_/ \\__/ ";
+                                
+    Log(setGreen(line1));
+    Log(setGreen(line2));
+    Log(setGreen(line3));
+    Log(setGreen(line4));
+    Log();  
+  }
+
+  void printRoundOverTitle(){
+    string line1 = "   ___                      __  ____                 ";
+    string line2 = "  / _ \\ ___  __ __ ___  ___/ / / __ \\ _  __ ___  ____";
+    string line3 = " / , _// _ \\/ // // _ \\/ _  / / /_/ /| |/ // -_)/ __/";
+    string line4 = "/_/|_| \\___/\\_,_//_//_/\\_,_/  \\____/ |___/ \\__//_/   ";
+                                                      
+
+    Log(setGreen(line1));
+    Log(setGreen(line2));
+    Log(setGreen(line3));
+    Log(setGreen(line4));
+    Log(); 
+  }
+
+  void printGameOverTitle(){
+    string line1 = "  _____                   ____                   __";
+    string line2 = " / ___/___ _ __ _  ___   / __ \\ _  __ ___  ____ / /";
+    string line3 = "/ (_ // _ `//  ' \\/ -_) / /_/ /| |/ // -_)/ __//_/ ";
+    string line4 = "\\___/ \\_,_//_/_/_/\\__/  \\____/ |___/ \\__//_/  (_)  ";
+                                                    
+
+    Log(setGreen(line1));
+    Log(setGreen(line2));
+    Log(setGreen(line3));
+    Log(setGreen(line4));
+    Log(); 
+  }
+
+  void printReadyTitle(){
+    string line1 = "   ___                 __      ___ ";
+    string line2 = "  / _ \\ ___  ___ _ ___/ /__ __/__ \\";
+    string line3 = " / , _// -_)/ _ `// _  // // / /__/";
+    string line4 = "/_/|_| \\__/ \\_,_/ \\_,_/ \\_, / (_)  ";
+    string line5 = "                       /___/       ";
+    
+    Log(setGreen(line1));
+    Log(setGreen(line2));
+    Log(setGreen(line3));
+    Log(setGreen(line4));
+    Log(setGreen(line5));
+    Log();     
+  }
+
+  void ClearConsole(){
+    cout << "\033[2J\033[0;0H"; // escape sequence that clears the console;
+  }
+
+  void progressBar(int width){
+    float progress = 0.0;
+
+    cout << "\e[?25l"; //Hide the cursor;
+    
+    while (progress < 1.01) {
+      int barWidth = width;
+
+      cout << setBrightGreen("[");
+      int pos = barWidth * progress;
+      
+      for (int i = 0; i < barWidth; ++i) {
+        if (i < pos){
+          cout << setGreen("=");
+        } else if (i == pos) {
+          cout << setGreen(">");
+        } else { 
+          cout << " ";
+        }
       }
-    }
-    cout << setBrightGreen("] ") << int(progress * 100.0) << " %\r";
-    usleep(120000);//wait in microseconds
-    cout.flush();
+      cout << setBrightGreen("] ") << int(progress * 100.0) << " %\r";
+      usleep(120000);//wait in microseconds
+      cout.flush();
 
-    progress += 0.09;
+      progress += 0.09;
+    }
+    cout << endl;
+    cout << "\e[?25h"; // show the cursor
   }
-  cout << endl;
-  cout << "\e[?25h"; // show the cursor
-}
 
-void printBoardKey(){
-  Log("Key:");
-  Log(setGreen("■") + " = Friendly battleship");
-  Log(setRed("■") + " = Sunk ship");
-  Log(setYellow("☼") + " = Missed torpedo attack");
-  Log(setRed("×") + " = Torpedo attack hit a battleship");
-  Log();
-}
- 
-udtCoord cpuGenerateRandCoords(int xSize, int ySize){
-  udtCoord _tempCoord;
-
-  _tempCoord.x = rollDice(xSize); //set x as a random number between 1 & xSize
-  _tempCoord.y = rollDice(ySize); //set y as a random number between 1 & ySize
-
-  return _tempCoord;
-}
-
-pair<char, bool> cpuSelectHeading(){ //TODO: Remove, Not needed;
-  int selected = rollDice(4); //get a random number inclusively between 1 & 4
-  pair<char, bool> result;
-
-  Log();
-  cout << selected << endl;
-
-  result.first = 'x';
-  result.second = false;
-
-  switch(selected){
-    case 1 : {
-      result.first = 'u';
-      result.second = true;
-    }
-    case 2 : {
-      result.first = 'd';
-      result.second = true;
-    } 
-    case 3 : {
-      result.first = 'l';
-      result.second = true;
-    }
-    case 4 : {
-      result.first = 'r';
-      result.second = true;
-    }
+  void printBoardKey(){
+    Log("Key:");
+    Log(setGreen("■") + " = Friendly battleship");
+    Log(setRed("■") + " = Sunk ship");
+    Log(setYellow("☼") + " = Missed torpedo attack");
+    Log(setRed("×") + " = Torpedo attack hit a battleship");
+    Log();
   }
-  cout << result.first << endl;
-  return result;
-}
+  
+  udtCoord cpuGenerateRandCoords(int xSize, int ySize){
+    udtCoord _tempCoord;
 
-int cpuSelectRandomTarget(int activePlayerCount, int userIdIgnore){
-  int randId;
+    _tempCoord.x = rollDice(xSize); //set x as a random number between 1 & xSize
+    _tempCoord.y = rollDice(ySize); //set y as a random number between 1 & ySize
 
-  do{
-    randId = rollDice(activePlayerCount); // get a random number between 1 and the amount of active players;
-  } while(randId == userIdIgnore);
+    return _tempCoord;
+  }
 
-  return randId;
-}
+  int cpuSelectRandomTarget(int activePlayerCount, int userIdIgnore){
+    int randId;
 
+    do{
+      randId = rollDice(activePlayerCount); // get a random number between 1 and the amount of active players;
+    } while(randId == userIdIgnore);
+
+    return randId;
+  }  
+};
 
 //SHIP CLASS
 class clsShip{
@@ -429,6 +376,16 @@ class clsShip{
       _health--;
     }
 
+    // int calculateHealth(){
+    //   int _hit;
+
+    //   for(int i = 0; i < _bulkheads.size(); i++){
+    //     if(_bulkheads[i].hit) _hit++;
+    //   }
+
+    //   return _length - _hit;
+    // }
+
     vector <bulkhead> getBulkheads(){
       return _bulkheads;
     }
@@ -449,11 +406,11 @@ class clsShip{
       return _announced;
     }
 
-    void setSunk(){
-      for(int i = 0; i < _bulkheads.size(); i++){
-        _bulkheads[i].sunk = true;
-      }
-    }
+    // void setSunk(){
+    //   for(int i = 0; i < _bulkheads.size(); i++){
+    //     _bulkheads[i].sunk = true;
+    //   }
+    // }
 
   private:
     int _length;
@@ -464,7 +421,7 @@ class clsShip{
 };
 
 //USER CLASS
-class clsUser{ //Observer
+class clsUser : clsUtilities{ //Observer - inheirits utilities class
   public:
     clsUser(string name, int id, bool isCPU, vector < clsShip > config){//constructor
       _name = name;
@@ -922,19 +879,31 @@ class clsUser{ //Observer
           if(x == _ships[i].getBulkheads()[j].x && y == _ships[i].getBulkheads()[j].y){ // if the passed in coords match a bulkhead;
             missed = false;
             roundEvents.push_back(getName() + "'s " + _ships[i].getName() + " has been " + setRed("hit!")); // If a ship has been hit, add it to the message queue;
+            _ships[i].getBulkheads()[j].hit = true; // set the current bulkheads status hit = true; TODO : may not be required DEBUG
             _ships[i].decrementHealth(); // decrease the current ships health by 1;
-            _ships[i].getBulkheads()[j].hit = true; // set the current bulkheads status hit = true;
           }
         }
 
         if(_ships[i].getHealth() == 0 && !_ships[i].getAnnounced()){ //if any of the updated ships have been destroyed & they have not been announced;
+          registerSunk(_ships[i]); // set all of the ships bulheads to sunk status if ship has been destroyed;
           _ships[i].setAnnounced();
-          _ships[i].setSunk(); // set all of the ships bulheads to sunk status;
           roundEvents.push_back(getName() + "'s " + _ships[i].getName() + " has been " + setRed("destroyed!")); // Add this to the message queue
         }
       } 
+      
       if(missed){
         roundEvents.push_back(getName() + " was attacked at: " + to_string(x) + ", " + to_string(y) + " but the shot " + setYellow("missed")); // add the attacked coord to the message queue;
+      }
+    }
+
+    void registerSunk(clsShip &ship){ // push all coordinate for bulheads of a ship once sunk;
+      for(int i = 0; i < ship.getBulkheads().size(); i++){
+        udtCoord _sunkCoord;
+
+        _sunkCoord.x = ship.getBulkheads()[i].x;
+        _sunkCoord.y = ship.getBulkheads()[i].y;
+
+        _sunk.push_back(_sunkCoord);
       }
     }
 
@@ -980,19 +949,6 @@ class clsUser{ //Observer
 
       return remainingShips;
     }
-
-    // udtCoord getLastHitCoord(){
-    //   return _lastHitCoord;
-    // }
-
-    // void setLastHitCoord(int x, int y){
-    //   _lastHitCoord.x = x;
-    //   _lastHitCoord.y = y;
-    // }
-
-    // void resetLastHitCoord(){
-    //   _lastHitCoord = {-1, -1};
-    // }
 
     int getLastTargetId(){
       return _lastTarget;
@@ -1066,28 +1022,22 @@ class clsUser{ //Observer
       return _tempCoord; //return the randomly selected coord;
     }
 
-    void printPotentials(){ //DEBUG function
-    Log("Printing potential next shots for ", getName());//DEBUG
-      if(_cpuPotentialAttack.size()){
-        for(int i = 0; i < _cpuPotentialAttack.size(); i++){
-          Log("x:" + to_string(_cpuPotentialAttack[i].x), " y:" + to_string(_cpuPotentialAttack[i].y));
-          Log();
+    void printSunk(int xSize, int ySize){//DEBUG
+      Log("Printing sunk coords for " + getName());
+      for(int y = ySize; y >= 1; y--){
+        for(int x = 1; x <= xSize; x++){
+          if(isSunk(x, y)) cout << "sunk: " << x << ", " << y << endl;
         }
-      } else {
-        Log("No potentials");//DEBUG
       }
     }
 
     bool isSunk(int x, int y){
-      for(int s = 0; s < _ships.size(); s++){ // for each ship...
-        for(int b = 0; b < _ships[s].getBulkheads().size(); b++){ //for each bulkhead...
-          if(_ships[s].getBulkheads()[b].x == x && _ships[s].getBulkheads()[b].y) { //if the params match the coords of a bulkhead 
-            
-            if(_ships[s].getBulkheads()[b].sunk) return true;
-          }
-        }
-      }
-      return false;
+     for(int i = 0; i < _sunk.size(); i++){
+       if(_sunk[i].x == x && _sunk[i].y == y){
+         return true;
+       }
+     }
+     return false;
     }
 
   private:
@@ -1095,16 +1045,16 @@ class clsUser{ //Observer
     string _name;
     vector < udtCoord > _occupied; // represents a players personal board;
     vector < udtCoord > _attacked; // represents where users have fired at this users board;
+    vector < udtCoord > _sunk;
     vector < udtCoord > _cpuPotentialAttack;
     vector < clsShip > _ships;
-    // udtCoord _lastHitCoord = { -1, -1 }; TODO: remove
     int _lastTarget = -1;
     bool _active = true;
     bool _cpu = false;
 };
 
 //GAMESTATE CLASS - Combined Singleton, State Machine & observer Design Patterns
-class clsGamestate{
+class clsGamestate : clsUtilities{
   public:
     //used to allow clients to access the instance of Gamestate;
     static clsGamestate* getInstance() {
@@ -1258,7 +1208,11 @@ class clsGamestate{
         ClearConsole();
         setState(1);
         updateUsers(); // calling when stage == 1; //TODO: change to while loop
+        
+        setState(2);
         updateUsers(); // calling when stage == 2;
+
+        setState(3);
         updateUsers(); // calling when stage == 3;
       }
     }
@@ -1277,10 +1231,8 @@ class clsGamestate{
     void updateUsers(){
       if(_state == 1){ // if stage is 'placement' - get players to place ships;
         for(int i = 0; i < _users.size(); i++){
-          Log("Asking user " + _users[i].getName() + " to place their ships");
           _users[i].placeFleet(getBoardSize().x, getBoardSize().y); // get user to place their boats;
         }
-        setState(2);
 
       } else if(_state == 2){ // if stage is 'play' - cycle through users to choose target & attack;
         while(getActivePlayers() > 1){ // while there is more than 1 active player
@@ -1289,7 +1241,7 @@ class clsGamestate{
                 _users[i].setInactive(); //set them as inactive
                 roundEvents.push_back(setRed("!!! All of " + _users[i].getName() + "'s ships have been destroyed !!!"));//push the event to the event queue;
 
-              } else if(_users[i].isActive() && !_users[i].isCPU()){ // if the player is active & not a CPU player;
+              }else if(_users[i].isActive() && !_users[i].isCPU()){ // if the player is active & not a CPU player;
               pair <bool, int> foundUser;
               int targetId = -1;
 
@@ -1342,9 +1294,11 @@ class clsGamestate{
               _users[i].viewBoard(getBoardSize().x, getBoardSize().y); // View current player board;
               printBoardKey();
 
+              _users[i].printSunk(getBoardSize().x, getBoardSize().y); //DEBUG REMOVE TODO
+
               yToContinue();
 
-            } else if(_users[i].isActive() && _users[i].isCPU()){ // is active & isCPU
+            } else if(_users[i].isActive() && _users[i].isCPU()){ // if current player is active & isCPU
               int targetIndex;
               int lastTargetIndex = checkUserExistsById(_users[i].getLastTargetId()).second;
               bool lastTargetExists = checkUserExistsById(_users[i].getLastTargetId()).first;
@@ -1402,17 +1356,18 @@ class clsGamestate{
               getUserByIndex(targetIndex).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
               printBoardKey();
               Log(setGreen(_users[i].getName()) + " attacked " + setRed(getUserByIndex(targetIndex).getName()) + " at: " + to_string(attackCoord.x) + ", " + to_string(attackCoord.y) + "\n");
+              _users[i].viewBoard(getBoardSize().x, getBoardSize().y); //DEBUG TODO
               ///////////////////////
 
               if(hit){ // if the shot hit - print confirmation message;
                 Log("The shot " +  setRed("hit!"));
-              } else { //if shot missed - reset last hit & potential attack coords;
+              } else { //if shot missed - print confirmation message;
                 Log("The shot " + setYellow("missed!"));
-                // _users[i].clearPotentials();//reset potentials //DEBUG MIGHT NOT BE NEEDED
-                // _users[i].resetLastHitCoord();//reset last hit //DEBUG MIGHT NOT BE NEEDED
               }
               Log();
 
+              _users[i].printSunk(getBoardSize().x, getBoardSize().y); //DEBUG REMOVE TODO
+              
               yToContinue();
             }
           }
@@ -1423,7 +1378,6 @@ class clsGamestate{
           roundEvents.clear(); // reset events for next round;
           yToContinue();
         }
-        setState(3); // once there is only 1 active player remaining - change state to 3 (game over)
 
       } else if(_state == 3){ // if stage is 'winner' - display winner screen to remaining player(s);
         char input;
@@ -1573,6 +1527,17 @@ class clsGamestate{
     void setState(int i){
       _state = i;
     }
+
+      void printRoundEvents(){
+    Log("Round History");
+    Log("________________________________");
+    Log("════════════════════════════════");
+    for(int i = 0; i < roundEvents.size(); i++){
+      cout << to_string(i+1) + ". " << roundEvents[i] << "\n";
+    }
+    Log("________________________________");
+    Log("════════════════════════════════");
+  }
 
     string cleanString(string text){ // clean all leading, double and trailing spaces from a string;
       string _local = text;
