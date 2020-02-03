@@ -189,6 +189,21 @@ class clsUtilities{
     return "\x1B[93m" + message + "\033[0m";
   }
 
+  void printLoading(){  
+    string line1 = "   __                 __ _                    ";
+    string line2 = "  / /  ___  ___ _ ___/ /(_)___  ___ _         ";
+    string line3 = " / /__/ _ \\/ _ `// _  // // _ \\/ _ `/ _  _  _ ";
+    string line4 = "/____/\\___/\\_,_/ \\_,_//_//_//_/\\_, / (_)(_)(_)";
+    string line5 = "                              /___/           ";
+
+    Log(setGreen(line1));
+    Log(setGreen(line2));
+    Log(setGreen(line3));
+    Log(setGreen(line4));
+    Log(setGreen(line5));
+    Log();
+  }
+
   void printTitle(){  
     string line1 = "   ___         __   __   __           __    _          ";
     string line2 = "  / _ ) ___ _ / /_ / /_ / /___  ___  / /   (_)___   ___";
@@ -1745,7 +1760,8 @@ class clsGamestate : clsUtilities{
 
     void loading(){
       cout << "\e[?25l"; //Hide the cursor;
-      cout << setYellow("Loading config ");
+      printLoading();
+      cout << setYellow("Reading config ");
       cout << setGreen("-") << flush;
       
       usleep(600000);
