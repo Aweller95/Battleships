@@ -77,8 +77,9 @@ I intend to continue learning more about C++ and its application in the game dev
 #include <limits>
 #include <unistd.h>
 #include <fstream>
+#include <thread>
 
-#define configFile "config.csv"
+#define configFile "shipConfig.csv"
 
 using namespace std;
 
@@ -87,7 +88,7 @@ class clsShip;
 class clsUser;
 class clsGamestate;
 
-vector <string> roundEvents; // stores strings that describe various events that occur during a round;
+vector < string > roundEvents; // stores strings that describe various events that occur during a round;
 
 struct bulkhead{
   int x = -1;
@@ -350,6 +351,21 @@ class clsUtilities{
     }
     cout << endl;
     cout << "\e[?25h"; // show the cursor
+  }
+
+  void loading(){
+    cout << setYellow("Loading config ");
+    cout << setGreen("-") << flush;
+    for(int i = 0; i < 1000; i++) {
+        usleep(100000);
+        cout << setGreen("\b\\") << flush;
+        usleep(100000);
+        cout << setGreen("\b|") << flush;
+        usleep(100000);
+        cout << setGreen("\b/") << flush;
+        usleep(100000);
+        cout << setGreen("\b-") << flush;
+    }
   }
 
   void printBoardKey(){
@@ -1085,8 +1101,6 @@ class clsUser : clsUtilities{ //Observer - inheirits utilities class
       
       do{ 
         if(_cpuPotentialAttack.size() == 0){ // if no more potential targets - generate random coord;
-          Log("No more potentials - generating random target");//DEBUg
-          yToContinue();//DEBUG
           do{
             _tempCoord = cpuGenerateRandCoords(xSize, ySize);
           } while (
@@ -1110,7 +1124,7 @@ class clsUser : clsUtilities{ //Observer - inheirits utilities class
     }
 
     void printSunk(int xSize, int ySize){//DEBUG FUNCTION
-      Log("Printing sunk coords for " + getName());
+      Log(setYellow("DEBUG: ") + "Printing sunk coords for " + getName());
       for(int y = ySize; y >= 1; y--){
         for(int x = 1; x <= xSize; x++){
           if(isSunk(x, y)) cout << "sunk: " << x << ", " << y << endl;
@@ -1316,6 +1330,15 @@ class clsGamestate : clsUtilities{
       return count;
     }
 
+    void printActiveUsers(){ //DEBUG FUNCTION
+      cout << setYellow("DEBUG: ") << "Printing all active users" << endl;
+      for(int i = 0; i < _users.size(); i++){
+        if(_users[i].calculateHealth() > 0){
+          cout << setYellow(to_string(i)) << ": " << _users[i].getName() << endl;
+        }
+      }
+    }
+
     void updateUsers(){
       if(_state == 1){ // if stage is 'placement' - get players to place ships;
         for(int i = 0; i < _users.size(); i++){
@@ -1323,11 +1346,15 @@ class clsGamestate : clsUtilities{
         }
 
       } else if(_state == 2){ // if stage is 'play' - cycle through users to choose target & attack;
+        int roundCount = 0;
+
         while(getActivePlayers() > 1){ // while there is more than 1 active player
+          Log(setYellow("DEBUG: ") + "Active users = " + to_string(getActivePlayers())); //DEBUG
+          
           for(int i = 0; i < _users.size(); i++){ // for each user
-
-            if(_users[i].calculateHealth() > 0) {// if the current user is not dead;
-
+            Log(setYellow("DEBUG: ") + "for each user..."); //DEBUG
+            if(_users[i].calculateHealth() > 0) { // if the current user is not dead;
+              Log(setYellow("DEBUG: ") + "if user health > 0"); //DEBUG
               if(!_users[i].isCPU()){ // if the player is active & not a CPU player;
                 pair <bool, int> foundUser;
                 int targetId = -1;
@@ -1377,6 +1404,7 @@ class clsGamestate : clsUtilities{
                 if(getUserByIndex(foundUser.second).calculateHealth() == 0 && !getUserByIndex(foundUser.second).getAnnounced()) { //if user has been killed and hasnt been announced yet...
                   getUserByIndex(foundUser.second).setAnnounced();
                   roundEvents.push_back(setRed("!!! All of " + getUserByIndex(foundUser.second).getName() + "'s ships have been destroyed !!!"));//push the event to the event queue;
+                  eliminationEvents.push_back("Round " + to_string(roundCount) + ": " + setGreen(getUserByIndex(foundUser.second).getName()) + " was " + setRed("eliminated") + " by " + setGreen(_users[i].getName()));
                 }
 
                 ClearConsole();
@@ -1393,14 +1421,16 @@ class clsGamestate : clsUtilities{
                 bool lastTargetExists = checkUserExistsById(_users[i].getLastTargetId()).first;
                 bool hit = false;
                 udtCoord attackCoord = { -1, -1 };
-                
+                Log(setYellow("DEBUG: ") + "if user is CPU"); //DEBUG
                 // ADAPTIVE CPU - SELECT TARGET: 
                 if(!lastTargetExists || getUserByIndex(lastTargetIndex).calculateHealth() == 0){// If last Target has been killed -> select new random target;
                   int _targetId;
                   int _targetIndex;
+                  Log(setYellow("DEBUG: ") + "Select new target"); //DEBUG
+                  printActiveUsers(); //DEBUG
 
                   do{
-                    _targetId = cpuSelectRandomTarget(getActivePlayers(), _users[i].getId()); // generate a random targetId
+                    _targetId = cpuSelectRandomTarget(getPlayerCount(), _users[i].getId()); // generate a random targetId
                     _targetIndex = checkUserExistsById(_targetId).second; //find the user in _users - return the index of the found user in _users;
                   } while(getUserByIndex(_targetIndex).calculateHealth() == 0); // while the new user is dead -> select new target;
 
@@ -1409,6 +1439,7 @@ class clsGamestate : clsUtilities{
                   targetIndex = _targetIndex;
 
                 } else if(getUserByIndex(lastTargetIndex).calculateHealth() > 0){ //if last target is alive -> set as current target for this round;
+                  Log(setYellow("DEBUG: ") + "Select last target"); //DEBUG
                   targetIndex = checkUserExistsById(_users[i].getLastTargetId()).second;
                 }
                 ///////////////////////////
@@ -1425,7 +1456,9 @@ class clsGamestate : clsUtilities{
                 ///////////////////////
 
                 // ADAPTIVE CPU - SELECT ATTACK COORDS;
+                Log(setYellow("DEBUG: ") + "Select attack coords"); //DEBUG
                 if(_users[i].getPotentialAttackCoords().size() == 0){ //check if there are no more coords in potentials vector for user;
+                  Log(setYellow("DEBUG: ") + "Generate random coord"); //DEBUG
                   do {
                     attackCoord = cpuGenerateRandCoords(getBoardSize().x, getBoardSize().y); // generate new random attack coords;
                   } while(
@@ -1434,16 +1467,21 @@ class clsGamestate : clsUtilities{
                     getUserByIndex(targetIndex).checkCollision(attackCoord.x, attackCoord.y, true)   //or the attack coord has already been attacked 
                     );
                   } else { //if there are remaining potential targets -> select one from the vector
+                  Log(setYellow("DEBUG: ") + "Attack potential coord"); //DEBUG
                     attackCoord = _users[i].cpuGenerateSmartCoords(getUserByIndex(targetIndex), getBoardSize().x, getBoardSize().y); // return potential attack location;
                 }
+                Log(setYellow("DEBUG: ") + "Add attack coord to target"); //DEBUG
                 getUserByIndex(targetIndex).addAttacked(attackCoord.x, attackCoord.y); // add the validated attack coordinate to the targets board;
 
                 if(getUserByIndex(targetIndex).calculateHealth() == 0 && !getUserByIndex(targetIndex).getAnnounced()) { // if the target has been killed and the event hasnt been annouced...
+                  Log(setYellow("DEBUG: ") + "User has been killed -> add announcements + setAnnounced"); //DEBUG
                   getUserByIndex(targetIndex).setAnnounced(); // set announced for target to true;
                   roundEvents.push_back(setRed("!!! All of " + getUserByIndex(targetIndex).getName() + "'s ships have been destroyed !!!"));//push the event to the event queue;
+                  eliminationEvents.push_back(setYellow("Round " + to_string(roundCount)) + ": " + setGreen(getUserByIndex(targetIndex).getName()) + " was " + setRed("eliminated") + " by " + setGreen(_users[i].getName()));
                 }
 
                 if(getUserByIndex(targetIndex).getAttackedOrOccupied(attackCoord.x, attackCoord.y)){//if the attacked coord has hit...
+                  Log(setYellow("DEBUG: ") + "Shot hit"); //DEBUG
                   hit = true;
                   _users[i].cpuGeneratePotentialAttackCoords(getBoardSize().x, getBoardSize().y, attackCoord.x, attackCoord.y, getUserByIndex(targetIndex)); // build new potential hits based off of last hit
                 }
@@ -1461,16 +1499,18 @@ class clsGamestate : clsUtilities{
                   Log("The shot " + setYellow("missed!"));
                 }
                 Log();
-
-                cout << _users[i].getName() << "'s health = " << _users[i].calculateHealth() << endl; // DEBUG
                 ///////////////////////
               }
-            }
+              yToContinue();
+            } 
           }
+
           //End of round
           ClearConsole();
+          Log(setYellow("DEBUG: ") + "End of Round"); //DEBUG
           printRoundOverTitle();
-          printRoundEvents(); // print all events that occured in current round;
+          roundCount++; // increase round counter;
+          printRoundEvents(roundCount); // print all events that occured in current round;
           roundEvents.clear(); // reset events for next round;
           yToContinue();
         }
@@ -1481,10 +1521,17 @@ class clsGamestate : clsUtilities{
         ClearConsole();
         printGameOverTitle();
 
-        for(int i = 0; i < _users.size(); i++){
-          if(_users[i].calculateHealth() > 0) Log(setGreen(_users[i].getName() + " has WON!"));
+        for(int i = 0; i < _users.size(); i++){ // Print winning user;
+          if(_users[i].calculateHealth() > 0){
+            Log(setGreen(_users[i].getName() + " has WON!"));
+          } 
         }
         Log();
+
+        if(_playerCount > 2){
+          printEndGameEvents(); // print the eliminations that occured during the match;
+          Log();
+        }
 
         do{
           if(input == 'y'){
@@ -1492,7 +1539,7 @@ class clsGamestate : clsUtilities{
           } else if(input == 'n'){
             break;
           }
-          Log("PLAY AGAIN? (y/n)");
+          Log("Play again? (y/n)");
           cin >> input;
         } while(input != 'y' || input != 'n'); 
       }
@@ -1627,16 +1674,29 @@ class clsGamestate : clsUtilities{
       _state = i;
     }
 
-      void printRoundEvents(){
-    Log("Round History");
-    Log("________________________________");
-    Log("════════════════════════════════");
-    for(int i = 0; i < roundEvents.size(); i++){
-      cout << to_string(i+1) + ". " << roundEvents[i] << "\n";
+    void printRoundEvents(int roundCount){
+      Log("Round " + to_string(roundCount) + " events");
+      Log("________________________________");
+      Log("════════════════════════════════");
+      for(int i = 0; i < roundEvents.size(); i++){
+        cout << to_string(i+1) + ". " << roundEvents[i] << "\n";
+      }
+      Log("________________________________");
+      Log("════════════════════════════════");
     }
-    Log("________________________________");
-    Log("════════════════════════════════");
-  }
+
+    void printEndGameEvents(){
+      Log("Game Timeline");
+      Log("________________________________");
+      Log("════════════════════════════════");
+      for(int i = 0; i < eliminationEvents.size(); i++){
+        cout << eliminationEvents[i] << "\n";
+      }
+      Log("________________________________");
+      Log("════════════════════════════════");
+
+      eliminationEvents.clear(); //Wipe all entries for end game events;
+    }
 
     string cleanString(string text){ // clean all leading, double and trailing spaces from a string;
       string _local = text;
@@ -1676,6 +1736,8 @@ class clsGamestate : clsUtilities{
       int _longestShip = 0;
       int _toBeOccupied = 0;
 
+      ClearConsole();
+
       cFile.open(configFile); //open the config file with filestream;
 
       while(!cFile.eof()){ //while there are remaining lines in the file...
@@ -1702,6 +1764,7 @@ class clsGamestate : clsUtilities{
     int _maxOccupied;
     vector < clsUser > _users;
     vector < clsShip > _fleetConfig;
+    vector < string > eliminationEvents;
     udtCoord _boardSize;
     static clsGamestate* _inst;
 };
