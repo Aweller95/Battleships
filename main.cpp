@@ -1,3 +1,72 @@
+/* 
+Welcome to Alex Wellers...
+   ___         __   __   __           __    _          
+  / _ ) ___ _ / /_ / /_ / /___  ___  / /   (_)___   ___
+ / _  |/ _ `// __// __// // -_)(_-< / _ \ / // _ \ (_-<
+/____/ \_,_/ \__/ \__//_/ \__//___//_//_//_// .__//___/
+                                           /_/         
+
+Name: Alexander Weller
+email: alexander.weller@ada.ac.uk
+AI Design Document: https://docs.google.com/spreadsheets/d/1qIGcY03PQ1ut_RpV3RzkFJiKKVMFKJbYgjXU_Tgb5kQ/edit?usp=sharing 
+                    (Requires an Ada gmail account to access)
+
+
+Overall Approach
+----------------
+I approached the brief for this project by first thinking about how to architect the implementation. I initially thought about how I could merge multiple design patterns into one (Singleton, Observer Patter & Finite State Machine). My first thought was to have 3 main classes; User class, State class & Ship class, with a dependency on each other. This first design fell short due to the fact that it introduced cyclic dependency which is a paradigm broadly considered to be bad practice in program design. 
+
+Moving away from cyclic dependency, I decided to have my State class deal with all aspects related to the state of the game, as well as control the flow of the gameplay. I chose to also set up the state class as a subject to which Users/players would subscribe to and be updated based on the state. The ship class would also stored within the state and handed to new users in order to configure fleet composition.
+
+
+Design/Development Iterations
+-----------------------------
+  --> Class design
+  The initial class design mainly remained unchanged throughout the development of Battleships. I found that sticking to 3 main classes eased complexity nearer the end of the project.
+
+  --> state
+  I wanted the state to be used to update all registered users depending on 3 main stages of the game which I identified by decomposing the game on paper. The 3 main states were ‘Placement’ where each user would need to place their fleet on the board, ‘Play’ where each user would select a target and where to attack the target by entering coordinates and finally ‘End / win’, where the last remaining play wins the game. These states remained unchanged throughout the development process.
+
+  --> extensible from the beginning
+  I went into the development of Battleships with the intention of making the game fully customizable and extensible. From the beginning I set no hard limits to board size, ship sizes, ship amounts or player count. Due to allowing for the flexibility in these areas, some parts of the gameplay loop especially were complex as there were many permutations to consider.
+
+  --> gameplay loop
+  The gameplay loop was one of the most complex areas to work on nearer the end of the project. As mentioned above, the sheer mount of permutations to consider for both human player and CPU players caused the code to become very long.
+
+  --> Player vs. player
+  I first attempted to tackle player vs. player as I could test this fairly quickly and easily, as well as test each stage of the game thouroughly, such as placement, ensuring no boats were colliding, ships could not be placed outside of the map etc. Once a working journey with 2 human players was implemented, I could then start thinking about the steps that a CPU player would need to take, which turned out to be extremely similar to that of a human player – making the required tasks for the CPU clear.
+
+  --> AI Design (1st iteration (random))
+  The first iteration for CPU players was to have their placement of ships and selection of attack coordinates to be completely random. Once a reliable randomization function was written (rollDice()), I could then start using this to generate random selections by the CPU. Having a working CPU player, I was also able to put two CPU players against each other, which increased the speed of my testing considerably.
+
+  --> smarter AI Design (AI design Document)
+  Once I had played a full game against a working ‘easy’ CPU player, I decided to make the AI smarter and more adaptive to situations. The smarter AI design still randomly placed their own ships, however during the ‘play’ phase, the CPU initially selects completely random coordinates, which I call “Seek Mode”. Once the CPU hits a ship, the CPU then changes to “Hunt Mode”. 
+
+  In Hunt Mode, the CPU generates all of the potential next hits based on the initial hit and stores them under the user class. Each subsequent turn, the CPU will randomly choose one of the potential target locations, deleting the selected one until it has no more viable potential targets. Once there are no more potential target locations left, the CPU switches back to Seek Mode.
+
+  --> Future considerations for AI design
+  Due to time limitations, I could not implement further improvements to the AI. If I had more time, I would think about allowing individual CPU opponents interpret hits by other users. I would also have the CPU determine vertical or horizontal direction of the target & eliminate potential targets from the stack. I was also considering assigning probability values to each potential target within the stack to influence the choice of next attack, by selecting the highest probability coordinate first.
+
+
+Main Challenges
+---------------
+The biggest challenges I found was writing the AI for CPU opponents. I have never attempted to write an AI or CPU before so I was approaching this with no prior knowledge and came across many problems while implementing my solution. I found that the most difficult part was working out what needed to happen at which point in time during gameplay rounds.
+
+
+Most interesting / enjoyable/ rewarding successes
+-------------------------------------------------
+Although I struggled with it, I found writing the CPU opponents logic to be the most interesting, enjoyable AND rewarding. When I finally was happy with the logic, I gave me great delight to watch two CPU opponents fight each other in a ‘smart’ fashion!
+
+
+Reflection on continued development
+-----------------------------------
+I enjoyed this project immensely, I think that I have written a solid base on which to continue my exploration into game design, program design and AI design. I plan on continuing to play with what I have below to further improve my development knowledge. 
+
+I also found that, while very challenging at first, learning a new language forced me to really think about certain problems that I had while developing my solution, as opposed to writing my solution in JavaScript, where I wouldn’t have really explored HOW I could have implemented my solution in different ways.
+
+I intend to continue learning more about C++ and its application in the game development industry, I am also looking into game development using C# within the Unity engine. I also intend to discuss my experiences using C++ with my team at work, I feel that now having used two languages, I appreciate what some provide you and what other do not. I also feel that I have added additional context to my engineering decisions that I will make in the future.
+*/
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -12,23 +81,6 @@
 #define configFile "config.csv"
 
 using namespace std;
-
-/* 
-Name: Alexander Weller
-email: alexander.weller@ada.ac.uk
-AI Design Document: https://docs.google.com/spreadsheets/d/1qIGcY03PQ1ut_RpV3RzkFJiKKVMFKJbYgjXU_Tgb5kQ/edit?usp=sharing
---> I have also thought about x, y, z for AI targeting algorithm;
-
-Welcome to Alex Wellers...
-   ___         __   __   __           __    _          
-  / _ ) ___ _ / /_ / /_ / /___  ___  / /   (_)___   ___
- / _  |/ _ `// __// __// // -_)(_-< / _ \ / // _ \ (_-<
-/____/ \_,_/ \__/ \__//_/ \__//___//_//_//_// .__//___/
-                                           /_/         
-
-- Gamestate contains a vector of users; The state registers new users;
-- User contains a vector of ships, a vector of occupied coordinates and a vector of coordinates that they have been attacked at;
-*/
 
 // I declare classes here initially to enable interdependence;
 class clsShip;
@@ -51,7 +103,6 @@ struct udtCoord{
 
 //UTILITIES CLASS
 /* 
-I am using a naming scheme for helper functions to start with capital letters. This is to allow for easy differentiation between other function classifications.
 - Log() takes 3 optional params that will print to the console. Calling with no params prints a new line - I found that this was a cleaner way instead of using `cout << "\n"`.
 - ClearConsole() prints an escape sequence using `cout` which will clear all data currently displayed on the console.
 */
@@ -446,9 +497,9 @@ class clsUser : clsUtilities{ //Observer - inheirits utilities class
       _active = false;
     }
 
-    bool isActive(){
-      return _active;
-    }
+    // bool isActive(){
+    //   return _active;
+    // }
 
     bool getAnnounced(){
       return _announced;
@@ -887,7 +938,6 @@ class clsUser : clsUtilities{ //Observer - inheirits utilities class
           if(x == _ships[i].getBulkheads()[j].x && y == _ships[i].getBulkheads()[j].y){ // if the passed in coords match a bulkhead;
             missed = false;
             roundEvents.push_back(getName() + "'s " + _ships[i].getName() + " has been " + setRed("hit!")); // If a ship has been hit, add it to the message queue;
-            // _ships[i].getBulkheads()[j].hit = true; // set the current bulkheads status hit = true; TODO : may not be required DEBUG
             _ships[i].decrementHealth(); // decrease the current ships health by 1;
           }
         }
@@ -977,6 +1027,10 @@ class clsUser : clsUtilities{ //Observer - inheirits utilities class
       }
     }
 
+    void resetPotentialTargets(){
+      _cpuPotentialAttack.clear();
+    }
+
     bool checkPotentialsIfExists(udtCoord coord){ // Checks if the passed in coord is already in the potentials vector;
       bool result = false;
 
@@ -1024,13 +1078,24 @@ class clsUser : clsUtilities{ //Observer - inheirits utilities class
       }
     }
 
-    udtCoord cpuGenerateSmartCoords(clsUser &target){
+    udtCoord cpuGenerateSmartCoords(clsUser &target, int xSize, int ySize){
       udtCoord _tempCoord;
       int randItem;
       int index; 
       
       do{ 
-        Log("Coord has been attacked already");
+        if(_cpuPotentialAttack.size() == 0){ // if no more potential targets - generate random coord;
+          Log("No more potentials - generating random target");//DEBUg
+          yToContinue();//DEBUG
+          do{
+            _tempCoord = cpuGenerateRandCoords(xSize, ySize);
+          } while (
+                    !target.validateOriginCoord(xSize, ySize, _tempCoord.x, 'x') || //if x coord..
+                    !target.validateOriginCoord(xSize, ySize, _tempCoord.y, 'y') || //or y coord is invalid
+                    target.checkCollision(_tempCoord.x, _tempCoord.y, true));   //or the attack coord has already been attacked
+
+          return _tempCoord;
+        }
 
         randItem = rollDice(_cpuPotentialAttack.size()); //get random number based on amount of potentials;
         index = randItem - 1;
@@ -1044,7 +1109,7 @@ class clsUser : clsUtilities{ //Observer - inheirits utilities class
       return _tempCoord; //return the randomly selected coord;
     }
 
-    void printSunk(int xSize, int ySize){//DEBUG
+    void printSunk(int xSize, int ySize){//DEBUG FUNCTION
       Log("Printing sunk coords for " + getName());
       for(int y = ySize; y >= 1; y--){
         for(int x = 1; x <= xSize; x++){
@@ -1230,7 +1295,7 @@ class clsGamestate : clsUtilities{
       if(userChoice == 'y'){
         ClearConsole();
         setState(1);
-        updateUsers(); // calling when stage == 1; //TODO: change to while loop
+        updateUsers(); // calling when stage == 1;
         
         setState(2);
         updateUsers(); // calling when stage == 2;
@@ -1244,7 +1309,7 @@ class clsGamestate : clsUtilities{
       int count = 0;
 
       for(int i = 0; i < _users.size(); i++){
-        if(_users[i].isActive()){
+        if(_users[i].calculateHealth() > 0){
           count++;
         }
       }
@@ -1261,149 +1326,153 @@ class clsGamestate : clsUtilities{
         while(getActivePlayers() > 1){ // while there is more than 1 active player
           for(int i = 0; i < _users.size(); i++){ // for each user
 
-            if(_users[i].calculateHealth() == 0) goto endOfTurn; // if user is dead, skip to end of turn;
+            cout << _users[i].getName() << "'s health = " << _users[i].calculateHealth() << endl;
+            yToContinue();
 
-            if(_users[i].isActive() && !_users[i].isCPU()){ // if the player is active & not a CPU player;
-              pair <bool, int> foundUser;
-              int targetId = -1;
+            if(_users[i].calculateHealth() > 0) {// if the current user is not dead;
 
-              if(getNumOfHumanOpponents(_users[i].getId()) > 0){ // if there is at least 1 human opponent - show this warning;
-                ClearConsole();
-                printReadyTitle();
-                Log(setGreen(_users[i].getName()), " are you ready? (make sure your " + setRed("opponents") + " cannot see the screen!)");
-                Log();
-                yToContinue();
-              }
+              if(!_users[i].isCPU()){ // if the player is active & not a CPU player;
+                pair <bool, int> foundUser;
+                int targetId = -1;
 
-              // PLAYER SELECT TARGET
-              if(getActivePlayers() > 2){ //if there are more than 2 players, get user to enter a target;
-                printAllUsers(_users[i].getId());
-                Log();
-                Log(setGreen(_users[i].getName()), ", enter the " + setYellow("ID") + " of the player you want to attack: ");
-                cin >> targetId;
-                foundUser = checkUserExistsById(targetId);
+                if(getNumOfHumanOpponents(_users[i].getId()) > 0){ // if there is at least 1 human opponent - show this warning;
+                  ClearConsole();
+                  printReadyTitle();
+                  Log(setGreen(_users[i].getName()), " are you ready? (make sure your " + setRed("opponents") + " cannot see the screen!)");
+                  Log();
+                  yToContinue();
+                }
 
-                while(!cin || _users[i].getId() == targetId || !foundUser.first){ // ask for a target id while the id is invalid / the id is of the current player / the type of input is invalid;
-                  cout << "\e[2F"; //move cursor up 4 lines;
-                  cout << "\e[0J"; // clear screen from cursor down;
-                  Log(_users[i].getName() + ", enter a " + setRed("valid") + " user " + setYellow("ID"));
-
-                  cin.clear();
-                  cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                // PLAYER SELECT TARGET
+                if(getActivePlayers() > 2){ //if there are more than 2 players, get user to enter a target;
+                  printAllUsers(_users[i].getId());
+                  Log();
+                  Log(setGreen(_users[i].getName()), ", enter the " + setYellow("ID") + " of the player you want to attack: ");
                   cin >> targetId;
                   foundUser = checkUserExistsById(targetId);
+
+                  while(!cin || _users[i].getId() == targetId || !foundUser.first){ // ask for a target id while the id is invalid / the id is of the current player / the type of input is invalid;
+                    cout << "\e[2F"; //move cursor up 4 lines;
+                    cout << "\e[0J"; // clear screen from cursor down;
+                    Log(_users[i].getName() + ", enter a " + setRed("valid") + " user " + setYellow("ID"));
+
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                    cin >> targetId;
+                    foundUser = checkUserExistsById(targetId);
+                  }
+                } else { // if there is only one potential target, select automatically;
+                  targetId = cpuSelectRandomTarget(getActivePlayers(), _users[i].getId()); // get the id for the other player automatically;
+                  foundUser = checkUserExistsById(targetId);
                 }
-              } else { // if there is only one potential target, select automatically;
-                targetId = cpuSelectRandomTarget(getActivePlayers(), _users[i].getId()); // get the id for the other player automatically;
-                foundUser = checkUserExistsById(targetId);
-              }
-              ///////////////////////////
+                ///////////////////////////
 
-              ClearConsole();
-              printBattleTitle();
+                ClearConsole();
+                printBattleTitle();
 
-              getUserByIndex(foundUser.second).viewBoard(getBoardSize().x, getBoardSize().y, true); // view targets board;
-              _users[i].viewBoard(getBoardSize().x, getBoardSize().y); // View current player board;
-              printBoardKey();
+                getUserByIndex(foundUser.second).viewBoard(getBoardSize().x, getBoardSize().y, true); // view targets board;
+                _users[i].viewBoard(getBoardSize().x, getBoardSize().y); // View current player board;
+                printBoardKey();
 
-              udtCoord validatedAttackCoord = selectTargetCoords(getUserByIndex(foundUser.second), getBoardSize().x, getBoardSize().y); // get user to select attack coords;
-              getUserByIndex(foundUser.second).addAttacked(validatedAttackCoord.x, validatedAttackCoord.y); // add the validated attack coordinate to the targets board;
-              if(getUserByIndex(foundUser.second).calculateHealth() == 0) {
-                getUserByIndex(foundUser.second).setInactive(); // if the attacked user has been killed -> set them as inactive;
-                roundEvents.push_back(setRed("!!! All of " + getUserByIndex(foundUser.second).getName() + "'s ships have been destroyed !!!"));//push the event to the event queue;
-              }
+                udtCoord validatedAttackCoord = selectTargetCoords(getUserByIndex(foundUser.second), getBoardSize().x, getBoardSize().y); // get user to select attack coords;
+                getUserByIndex(foundUser.second).addAttacked(validatedAttackCoord.x, validatedAttackCoord.y); // add the validated attack coordinate to the targets board;
 
-              ClearConsole();
-              printBattleTitle();
+                if(getUserByIndex(foundUser.second).calculateHealth() == 0 && !getUserByIndex(foundUser.second).getAnnounced()) { //if user has been killed and hasnt been announced yet...
+                  getUserByIndex(foundUser.second).setAnnounced();
+                  roundEvents.push_back(setRed("!!! All of " + getUserByIndex(foundUser.second).getName() + "'s ships have been destroyed !!!"));//push the event to the event queue;
+                }
 
-              getUserByIndex(foundUser.second).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
-              _users[i].viewBoard(getBoardSize().x, getBoardSize().y); // View current player board;
-              printBoardKey();
+                ClearConsole();
+                printBattleTitle();
 
-              // yToContinue();
-
-            } else if(_users[i].isActive() && _users[i].isCPU()){ // if current player is active & isCPU
-              int targetIndex;
-              int lastTargetIndex = checkUserExistsById(_users[i].getLastTargetId()).second;
-              bool lastTargetExists = checkUserExistsById(_users[i].getLastTargetId()).first;
-              bool hit = false;
-              udtCoord attackCoord = { -1, -1 };
-              
-              //ADAPTIVE CPU - SELECT TARGET: 
-              if(!lastTargetExists || !getUserByIndex(lastTargetIndex).isActive()){// If last Target isnt active or doesnt exist -> select new random target;
-                int _targetId;
-
-                _targetId = cpuSelectRandomTarget(getActivePlayers(), _users[i].getId()); // generate a random targetId
-                _users[i].setLastTargetId(_targetId); // store lastTarget
-                targetIndex = checkUserExistsById(_targetId).second; //find the user in _users - return the index of the found user in _users;
-              } else { //if last target is active -> set as current target for this round;
-                targetIndex = checkUserExistsById(_users[i].getLastTargetId()).second;
-              }
-              ///////////////////////////
-
-              //PRINT USER INTERFACE
-              ClearConsole();
-              printBattleTitle();
-              getUserByIndex(targetIndex).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board before attacking;
-              printBoardKey(); // print board key
-              Log(setGreen(_users[i].getName()) + " is targeting " + setRed(getUserByIndex(targetIndex).getName()));
-              Log();
-              Log("Thinking. . .");
-              progressBar((getBoardSize().x) * 2); // show CPU is thinking
-              ///////////////////////
-
-              // ADAPTIVE CPU - SELECT ATTACK COORDS;
-              if(_users[i].getPotentialAttackCoords().size() == 0){ //check if there is at least 1 item in potentials vector for user;
-                do {
-                  attackCoord = cpuGenerateRandCoords(getBoardSize().x, getBoardSize().y); // generate random attack coords;
-                } while(
-                  !getUserByIndex(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, attackCoord.x, 'x') || //if x coord..
-                  !getUserByIndex(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, attackCoord.y, 'y') || //or y coord is invalid
-                  getUserByIndex(targetIndex).checkCollision(attackCoord.x, attackCoord.y, true)   //or the attack coord has already been attacked 
-                  );
-
-                } else { //if there are remaining potential targets -> select one from the vector
-                  attackCoord = _users[i].cpuGenerateSmartCoords(getUserByIndex(targetIndex)); // return potential attack location;
+                getUserByIndex(foundUser.second).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
+                _users[i].viewBoard(getBoardSize().x, getBoardSize().y); // View current player board;
+                printBoardKey();
               }
 
-              getUserByIndex(targetIndex).addAttacked(attackCoord.x, attackCoord.y); // add the validated attack coordinate to the targets board;
-              if(getUserByIndex(targetIndex).calculateHealth() == 0) {
-                getUserByIndex(targetIndex).setInactive(); // if the attacked user has been killed -> set them as 
-                roundEvents.push_back(setRed("!!! All of " + getUserByIndex(targetIndex).getName() + "'s ships have been destroyed !!!"));//push the event to the event queue;
-              }
+              if(_users[i].isCPU()){ // if current player is CPU controlled;
+                int targetIndex;
+                int lastTargetIndex = checkUserExistsById(_users[i].getLastTargetId()).second;
+                bool lastTargetExists = checkUserExistsById(_users[i].getLastTargetId()).first;
+                bool hit = false;
+                udtCoord attackCoord = { -1, -1 };
+                
+                // ADAPTIVE CPU - SELECT TARGET: 
+                if(!lastTargetExists || getUserByIndex(lastTargetIndex).calculateHealth() == 0){// If last Target has been killed -> select new random target;
+                  int _targetId;
+                  int _targetIndex;
 
-              if(getUserByIndex(targetIndex).getAttackedOrOccupied(attackCoord.x, attackCoord.y)){//if the attacked coord has hit...
-                hit = true;
-                _users[i].cpuGeneratePotentialAttackCoords(getBoardSize().x, getBoardSize().y, attackCoord.x, attackCoord.y, getUserByIndex(targetIndex)); // build new potential hits based off of last hit
-              }
-              ///////////////////////
-              
-              //PRINT USER INTERFACE
-              ClearConsole();
-              printBattleTitle();
-              getUserByIndex(targetIndex).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
-              printBoardKey();
-              Log(setGreen(_users[i].getName()) + " attacked " + setRed(getUserByIndex(targetIndex).getName()) + " at: " + to_string(attackCoord.x) + ", " + to_string(attackCoord.y) + "\n");
-              ///////////////////////
+                  do{
+                    _targetId = cpuSelectRandomTarget(getActivePlayers(), _users[i].getId()); // generate a random targetId
+                    _targetIndex = checkUserExistsById(_targetId).second; //find the user in _users - return the index of the found user in _users;
+                  } while(getUserByIndex(_targetIndex).calculateHealth() == 0); // while the new user is dead -> select new target;
 
-              if(hit){ // if the shot hit - print confirmation message;
-                Log("The shot " +  setRed("hit!"));
-              } else { //if shot missed - print confirmation message;
-                Log("The shot " + setYellow("missed!"));
-              }
-              Log();
+                  _users[i].setLastTargetId(_targetId); // store lastTarget
+                  _users[i].resetPotentialTargets(); // reset old potential targets;
+                  targetIndex = _targetIndex;
 
+                } else if(getUserByIndex(lastTargetIndex).calculateHealth() > 0){ //if last target is alive -> set as current target for this round;
+                  targetIndex = checkUserExistsById(_users[i].getLastTargetId()).second;
+                }
+                ///////////////////////////
+                
+                //PRINT USER INTERFACE
+                ClearConsole();
+                printBattleTitle();
+                getUserByIndex(targetIndex).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board before attacking;
+                printBoardKey(); // print board key
+                Log(setGreen(_users[i].getName()) + " is targeting " + setRed(getUserByIndex(targetIndex).getName()));
+                Log();
+                Log("Thinking. . .");
+                progressBar((getBoardSize().x) * 2); // show CPU is thinking
+                ///////////////////////
+
+                // ADAPTIVE CPU - SELECT ATTACK COORDS;
+                if(_users[i].getPotentialAttackCoords().size() == 0){ //check if there are no more coords in potentials vector for user;
+                  do {
+                    attackCoord = cpuGenerateRandCoords(getBoardSize().x, getBoardSize().y); // generate new random attack coords;
+                  } while(
+                    !getUserByIndex(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, attackCoord.x, 'x') || //if x coord..
+                    !getUserByIndex(targetIndex).validateOriginCoord(getBoardSize().x, getBoardSize().y, attackCoord.y, 'y') || //or y coord is invalid
+                    getUserByIndex(targetIndex).checkCollision(attackCoord.x, attackCoord.y, true)   //or the attack coord has already been attacked 
+                    );
+                  } else { //if there are remaining potential targets -> select one from the vector
+                    attackCoord = _users[i].cpuGenerateSmartCoords(getUserByIndex(targetIndex), getBoardSize().x, getBoardSize().y); // return potential attack location;
+                }
+                getUserByIndex(targetIndex).addAttacked(attackCoord.x, attackCoord.y); // add the validated attack coordinate to the targets board;
+
+                if(getUserByIndex(targetIndex).calculateHealth() == 0 && !getUserByIndex(targetIndex).getAnnounced()) {
+                  getUserByIndex(targetIndex).setAnnounced();
+                  roundEvents.push_back(setRed("!!! All of " + getUserByIndex(targetIndex).getName() + "'s ships have been destroyed !!!"));//push the event to the event queue;
+                }
+                if(getUserByIndex(targetIndex).getAttackedOrOccupied(attackCoord.x, attackCoord.y)){//if the attacked coord has hit...
+                  hit = true;
+                  _users[i].cpuGeneratePotentialAttackCoords(getBoardSize().x, getBoardSize().y, attackCoord.x, attackCoord.y, getUserByIndex(targetIndex)); // build new potential hits based off of last hit
+                }
+                ///////////////////////
+                
+                //PRINT USER INTERFACE
+                ClearConsole();
+                printBattleTitle();
+                getUserByIndex(targetIndex).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
+                printBoardKey();
+                Log(setGreen(_users[i].getName()) + " attacked " + setRed(getUserByIndex(targetIndex).getName()) + " at: " + to_string(attackCoord.x) + ", " + to_string(attackCoord.y) + "\n");
+                if(hit){ // if the shot hit - print confirmation message;
+                  Log("The shot " +  setRed("hit!"));
+                } else { //if shot missed - print confirmation message;
+                  Log("The shot " + setYellow("missed!"));
+                }
+                Log();
+                ///////////////////////
+              }
             }
-            endOfTurn:
-              yToContinue();
           }
-
           //End of round
           ClearConsole();
           printRoundOverTitle();
           printRoundEvents(); // print all events that occured in current round;
           roundEvents.clear(); // reset events for next round;
-          yToContinue();
+          // yToContinue(); //ENABLE THIS DEBUG TODO
         }
 
       } else if(_state == 3){ // if stage is 'winner' - display winner screen to remaining player(s);
@@ -1411,7 +1480,10 @@ class clsGamestate : clsUtilities{
         
         ClearConsole();
         printGameOverTitle();
-        Log(setGreen(_users[0].getName() + " has WON!"));
+
+        for(int i = 0; i < _users.size(); i++){
+          if(_users[i].calculateHealth() > 0) Log(setGreen(_users[i].getName() + " has WON!"));
+        }
         Log();
 
         do{
