@@ -1326,9 +1326,6 @@ class clsGamestate : clsUtilities{
         while(getActivePlayers() > 1){ // while there is more than 1 active player
           for(int i = 0; i < _users.size(); i++){ // for each user
 
-            cout << _users[i].getName() << "'s health = " << _users[i].calculateHealth() << endl;
-            yToContinue();
-
             if(_users[i].calculateHealth() > 0) {// if the current user is not dead;
 
               if(!_users[i].isCPU()){ // if the player is active & not a CPU player;
@@ -1441,10 +1438,11 @@ class clsGamestate : clsUtilities{
                 }
                 getUserByIndex(targetIndex).addAttacked(attackCoord.x, attackCoord.y); // add the validated attack coordinate to the targets board;
 
-                if(getUserByIndex(targetIndex).calculateHealth() == 0 && !getUserByIndex(targetIndex).getAnnounced()) {
-                  getUserByIndex(targetIndex).setAnnounced();
+                if(getUserByIndex(targetIndex).calculateHealth() == 0 && !getUserByIndex(targetIndex).getAnnounced()) { // if the target has been killed and the event hasnt been annouced...
+                  getUserByIndex(targetIndex).setAnnounced(); // set announced for target to true;
                   roundEvents.push_back(setRed("!!! All of " + getUserByIndex(targetIndex).getName() + "'s ships have been destroyed !!!"));//push the event to the event queue;
                 }
+
                 if(getUserByIndex(targetIndex).getAttackedOrOccupied(attackCoord.x, attackCoord.y)){//if the attacked coord has hit...
                   hit = true;
                   _users[i].cpuGeneratePotentialAttackCoords(getBoardSize().x, getBoardSize().y, attackCoord.x, attackCoord.y, getUserByIndex(targetIndex)); // build new potential hits based off of last hit
@@ -1463,6 +1461,8 @@ class clsGamestate : clsUtilities{
                   Log("The shot " + setYellow("missed!"));
                 }
                 Log();
+
+                cout << _users[i].getName() << "'s health = " << _users[i].calculateHealth() << endl; // DEBUG
                 ///////////////////////
               }
             }
@@ -1472,7 +1472,7 @@ class clsGamestate : clsUtilities{
           printRoundOverTitle();
           printRoundEvents(); // print all events that occured in current round;
           roundEvents.clear(); // reset events for next round;
-          // yToContinue(); //ENABLE THIS DEBUG TODO
+          yToContinue();
         }
 
       } else if(_state == 3){ // if stage is 'winner' - display winner screen to remaining player(s);
