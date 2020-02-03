@@ -353,21 +353,6 @@ class clsUtilities{
     cout << "\e[?25h"; // show the cursor
   }
 
-  void loading(){
-    cout << setYellow("Loading config ");
-    cout << setGreen("-") << flush;
-    for(int i = 0; i < 1000; i++) {
-        usleep(100000);
-        cout << setGreen("\b\\") << flush;
-        usleep(100000);
-        cout << setGreen("\b|") << flush;
-        usleep(100000);
-        cout << setGreen("\b/") << flush;
-        usleep(100000);
-        cout << setGreen("\b-") << flush;
-    }
-  }
-
   void printBoardKey(){
     Log("Key:");
     Log(setGreen("■") + " = Friendly battleship");
@@ -1448,7 +1433,7 @@ class clsGamestate : clsUtilities{
                 ClearConsole();
                 printBattleTitle();
                 getUserByIndex(targetIndex).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board before attacking;
-                printBoardKey(); // print board key
+                // printBoardKey(); // print board key
                 Log(setGreen(_users[i].getName()) + " is targeting " + setRed(getUserByIndex(targetIndex).getName()));
                 Log();
                 Log("Thinking. . .");
@@ -1491,12 +1476,12 @@ class clsGamestate : clsUtilities{
                 ClearConsole();
                 printBattleTitle();
                 getUserByIndex(targetIndex).viewBoard(getBoardSize().x, getBoardSize().y, true); //view the targets board again with hit/miss feedback;
-                printBoardKey();
+                // printBoardKey();
                 Log(setGreen(_users[i].getName()) + " attacked " + setRed(getUserByIndex(targetIndex).getName()) + " at: " + to_string(attackCoord.x) + ", " + to_string(attackCoord.y) + "\n");
                 if(hit){ // if the shot hit - print confirmation message;
-                  Log("The shot " +  setRed("hit!"));
-                } else { //if shot missed - print confirmation message;
-                  Log("The shot " + setYellow("missed!"));
+                  Log("The torpedo " +  setRed("hit!"));
+                } else { //if torpedo missed - print confirmation message;
+                  Log("The torpedo " + setYellow("missed!"));
                 }
                 Log();
                 ///////////////////////
@@ -1507,7 +1492,6 @@ class clsGamestate : clsUtilities{
 
           //End of round
           ClearConsole();
-          Log(setYellow("DEBUG: ") + "End of Round"); //DEBUG
           printRoundOverTitle();
           roundCount++; // increase round counter;
           printRoundEvents(roundCount); // print all events that occured in current round;
@@ -1730,13 +1714,14 @@ class clsGamestate : clsUtilities{
       return _result;
     }
 
-    void readConfig(){
-      ifstream cFile; //define a new filestream;
-      string _currentLine;
-      int _longestShip = 0;
+    bool readConfig(){
       int _toBeOccupied = 0;
+      int _longestShip = 0;
+      string _currentLine;
+      ifstream cFile; //define a new filestream;
 
       ClearConsole();
+      loading();
 
       cFile.open(configFile); //open the config file with filestream;
 
@@ -1755,6 +1740,25 @@ class clsGamestate : clsUtilities{
       _maxOccupied = _toBeOccupied;
 
       cFile.close();
+      return true;
+    }
+
+    void loading(){
+      cout << "\e[?25l"; //Hide the cursor;
+      cout << setYellow("Loading config ");
+      cout << setGreen("-") << flush;
+      
+      usleep(600000);
+      cout << setGreen("\b\\") << flush;
+      usleep(600000);
+      cout << setGreen("\b|") << flush;
+      usleep(600000);
+      cout << setGreen("\b/") << flush;
+      usleep(600000);
+      cout << setGreen("\b-") << flush;
+      usleep(300000);
+
+      cout << "\e[?25h"; // show the cursor
     }
 
   private:
