@@ -1,13 +1,12 @@
 /* 
-Welcome to Alex Wellers...
+Name: Alexander Weller
+email: alexander.weller@ada.ac.uk
+
    ___         __   __   __           __    _          
   / _ ) ___ _ / /_ / /_ / /___  ___  / /   (_)___   ___
  / _  |/ _ `// __// __// // -_)(_-< / _ \ / // _ \ (_-<
 /____/ \_,_/ \__/ \__//_/ \__//___//_//_//_// .__//___/
                                            /_/         
-
-Name: Alexander Weller
-email: alexander.weller@ada.ac.uk
 AI Design Document: https://docs.google.com/spreadsheets/d/1qIGcY03PQ1ut_RpV3RzkFJiKKVMFKJbYgjXU_Tgb5kQ/edit?usp=sharing 
                     (Requires an Ada gmail account to access)
 
@@ -19,6 +18,8 @@ Overall Approach
 I approached the brief for this project by first thinking about how to architect the implementation. I initially thought about how I could merge multiple design patterns into one (Singleton, Observer Patter & Finite State Machine). My first thought was to have 3 main classes; User class, State class & Ship class, with a dependency on each other. This first design fell short due to the fact that it introduced cyclic dependency which is a paradigm broadly considered to be bad practice in program design. 
 
 Moving away from cyclic dependency, I decided to have my State class deal with all aspects related to the state of the game, as well as control the flow of the gameplay. I chose to also set up the state class as a subject to which Users/players would subscribe to and be updated based on the state. The ship class would also stored within the state and handed to new users in order to configure fleet composition.
+
+Moving forward with the project, I would like to modularise the code below by separating out the classes into separate files to improve the separation of concerns.
 
 
 Design/Development Iterations
@@ -59,7 +60,9 @@ The biggest challenges I found was writing the AI for CPU opponents. I have neve
 
 Most interesting / enjoyable/ rewarding successes
 -------------------------------------------------
-Although I struggled with it, I found writing the CPU opponents logic to be the most interesting, enjoyable AND rewarding. When I finally was happy with the logic, I gave me great delight to watch two CPU opponents fight each other in a ‘smart’ fashion!
+Although I struggled with it, I found writing the CPU opponents logic to be the most interesting, enjoyable AND rewarding. When I finally was happy with the logic, I gave me great delight to watch two CPU opponents fight each other in a ‘smart’ fashion! 
+
+I also enjoyed acquiring feedback on the gameplay by letting my colleagues play the game, it allowed me to gain invaluable feedback and having a fresh pair of eye on the user experience, along with the intention of trying to break the game helped me iterate on the final product and ensure the best experience for the user.
 
 
 Reflection on continued development
@@ -108,10 +111,7 @@ struct udtCoord{
 //UTILITIES CLASS
 class clsUtilities{
   protected:
-    void Log(string message1 = "", string message2 = "", string message3 = ""){
-      cout << message1 << message2 << message3 << endl;
-    }
-
+    /// CPU FUNCTIONS
     udtCoord cpuGenerateRandCoords(int xSize, int ySize){
       udtCoord _tempCoord;
 
@@ -130,7 +130,9 @@ class clsUtilities{
 
       return randId;
     }
+    /////////////////
 
+    /// GENERAL UTILITIES
     int getIntLength(int i){
       return trunc(log10(i)) + 1;
       // using log10 -> returns the value y in base 10. 
@@ -145,7 +147,9 @@ class clsUtilities{
       int random_number = (rand() % mod) + 1; 
       return random_number;
     }
+    /////////////////
 
+    /// USER INPUT
     void yToContinue(){
       char input;
       
@@ -158,6 +162,12 @@ class clsUtilities{
     void enterToContinue(){
       Log("Press enter to continue...");
       cin.ignore();
+    }
+    /////////////////
+    
+    /// LOGGING & GRAPHICS
+    void Log(string message1 = "", string message2 = "", string message3 = ""){
+      cout << message1 << message2 << message3 << endl;
     }
 
     void printRed(string message){
@@ -384,16 +394,46 @@ class clsUtilities{
       Log(setRed("×") + " = Torpedo attack hit a battleship");
       Log();
     }
+    /////////////////
 };
 
-//SHIP CLASS
+//SHIP CLASS - inheirits utilities class
 class clsShip : clsUtilities{
   public:
-    clsShip(string name, int length){
+    clsShip(string name, int length){ //Class constructor
       _name = name;
       _length = length;
       _health = length;
       buildBulkheads();
+    }
+
+    /// GETTERS & SETTERS
+    int getHealth(){
+      return _health;
+    }
+
+    void decrementHealth(){
+      _health--;
+    }
+
+    vector <udtBulkhead> getBulkheads(){
+      return _bulkheads;
+    }
+
+    string getName(){
+      return _name;
+    }
+
+    int getLength(){
+      return _length;
+    }
+
+    void setAnnounced(){
+      _announced = true;
+    }
+
+    bool getAnnounced(){
+      return _announced;
     }
 
     void buildBulkheads(){
@@ -424,34 +464,6 @@ class clsShip : clsUtilities{
       }
     }
 
-    int getHealth(){
-      return _health;
-    }
-
-    void decrementHealth(){
-      _health--;
-    }
-
-    vector <udtBulkhead> getBulkheads(){
-      return _bulkheads;
-    }
-
-    string getName(){
-      return _name;
-    }
-
-    int getLength(){
-      return _length;
-    }
-
-    void setAnnounced(){
-      _announced = true;
-    }
-
-    bool getAnnounced(){
-      return _announced;
-    }
-
   private:
     int _length;
     int _health;
@@ -460,8 +472,8 @@ class clsShip : clsUtilities{
     vector < udtBulkhead > _bulkheads;
 };
 
-//USER CLASS
-class clsUser : clsUtilities{ //Observer (subscribes to gamestate) - inheirits utilities class
+//USER CLASS - //Observer (subscribes to gamestate) - inheirits utilities class
+class clsUser : clsUtilities{ 
   public:
     clsUser(string name, int id, bool isCPU, vector < clsShip > config){ //class constructor
       _name = name;
@@ -470,6 +482,7 @@ class clsUser : clsUtilities{ //Observer (subscribes to gamestate) - inheirits u
       buildFleet(config);
     }
 
+    /// GETTERS & SETTERS
     string getName(){
       return _name;
     }
@@ -1120,7 +1133,7 @@ class clsUser : clsUtilities{ //Observer (subscribes to gamestate) - inheirits u
     bool _cpu = false;
 };
 
-//GAMESTATE CLASS - Combined Singleton, State Machine & observer Design Patterns
+//GAMESTATE CLASS - Combined Singleton, State Machine & observer Design Patterns  - inheirits utilities class
 class clsGamestate : clsUtilities{
   public:
     //used to allow clients to access the instance of Gamestate;
@@ -1158,7 +1171,7 @@ class clsGamestate : clsUtilities{
         cin.clear();
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
-        Log("Enter the number of players: ");
+        Log("Enter the number of players: (including CPU opponents)");
         cin >> playerCount;
 
       } while (!playerCount || playerCount < 2);
@@ -1226,7 +1239,7 @@ class clsGamestate : clsUtilities{
           Log("Please enter the size of the " + setCyan("Y") + " axis for player boards");
           cin >> y;
         } else {
-          Log(setRed("Board cannot be smaller than the number of ships it must contain"));
+          Log(setRed("Board cannot be smaller than the number of ships it must contain OR larger than 75x75"));
           Log();
 
           Log("Please enter a new size of the " + setBrightGreen("X") + " axis for player boards");
@@ -1240,7 +1253,7 @@ class clsGamestate : clsUtilities{
           cin >> y;
         }
         firstRun = false;
-      } while((x < _maxShipLength && y < _maxShipLength) || ((x * y) < _maxOccupied));
+      } while((x < _maxShipLength && y < _maxShipLength) || ((x * y) < _maxOccupied) || (x > 75 || y > 75));
 
       setBoardSize(x, y);
     }
